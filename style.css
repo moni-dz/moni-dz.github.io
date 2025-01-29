@@ -1,26 +1,28 @@
 /* theme */
 :root {
-    --bg-color: oklch(100% 0 0);
-    --text-color: oklch(0% 0 0);
+    --bg-color: oklch(92.8% 0 0);
+    --text-color: oklch(34.96% 0.0141 274.5);
     --border-color: oklch(80% 0 0);
-    --nav-bg: oklch(0% 0 0);
-    --nav-text: oklch(100% 0 0);
+    --nav-bg: oklch(34.96% 0.0141 274.5);
+    --nav-text: oklch(92.8% 0 0);
     --shadow-color: oklch(0% 0 0 / 0.3);
     --overlay-color: oklch(100% 0 0 / 0.9);
-    --link-color: oklch(62.94% 0.2254 330.09);
-    --code-color: oklch(57.66% 0.1816 255.83);
+    --link-color: oklch(64.91% 0.1269 299.1);
+    --code-color: oklch(64.98% 0.0915 253.74);
+    --emphasis-color: oklch(60.01% 0.1359 19.2);
 }
 
 :root[data-theme="dark"] {
-    --bg-color: oklch(20% 0 0);
-    --text-color: oklch(95% 0 0);
+    --bg-color: oklch(21.78% 0 0);
+    --text-color: oklch(89.93% 0.0164 262.75);
     --border-color: oklch(30% 0 0);
-    --nav-bg: oklch(95% 0 0);
-    --nav-text: oklch(0% 0 0);
+    --nav-bg: oklch(89.93% 0.0164 262.75);
+    --nav-text: oklch(21.78% 0 0);
     --shadow-color: oklch(100% 0 0 / 0.3);
     --overlay-color: oklch(20% 0 0 / 0.9);
-    --link-color: oklch(70% 0.2254 330.09);
-    --code-color: oklch(66.75% 0.1816 255.83);
+    --link-color: oklch(72.36% 0.0454 298.54);
+    --code-color: oklch(72.04% 0.0912 253.56);
+    --emphasis-color: oklch(72.64% 0.1015 17.52);
 }
 
 /* styles for certain keywords */
