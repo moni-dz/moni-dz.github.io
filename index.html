@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>my portfolio</title>
     <link rel="stylesheet" href="style.css">
     <script src="script.js"></script>
@@ -27,14 +27,15 @@
                 <div class="terminal-content">
                     <h1>welcome!</h1>
                     <p>
-                    start by navigating to the other windows using the links above or by clicking the windows.
+                    start by navigating to the other windows using the links above.
+                    
+                    <span id="device-specific-message"></span>
 
                     you may also drag the active window around by dragging it's title bar.
 
                     toggle the theme by clicking the button on the top right.
 
-                    this site is best viewed in a modern desktop browser as it uses baseline 2023 features
-                    such as <code><a href="https://developer.mozilla.org/en-US/docs/Web/CSS/color_value/oklch">oklch()</a></code>.
+                    this site is best viewed in a modern up-to-date browser as it uses <a href="https://developer.mozilla.org/en-US/docs/Glossary/Baseline/Compatibility">Baseline</a> 2023 features such as <code><a href="https://developer.mozilla.org/en-US/docs/Web/CSS/color_value/oklch">oklch()</a></code>.
                     </p>
                 </div>
             </div>
@@ -85,7 +86,10 @@
                     and the animations are purely handled by CSS transitions and pseudo-classes.
 
                     semantic HTML tags are used as appropriate.
+
                     window dragging, hover effects, and theme toggling is implemented in JS using event listeners.
+
+                    this site is responsive and works well on mobile devices, the experience is slightly different but still functional.
 
                     implementing this site is a marker of my progress in this course and a demonstration of my skills.
                     </p>
