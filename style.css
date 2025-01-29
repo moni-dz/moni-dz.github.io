@@ -1,0 +1,314 @@
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;1,100;1,200;1,300;1,400;1,500;1,600;1,700&display=swap');
+
+:root {
+    --bg-color: oklch(100% 0 0);
+    --text-color: oklch(0% 0 0);
+    --border-color: oklch(80% 0 0);
+    --nav-bg: oklch(0% 0 0);
+    --nav-text: oklch(100% 0 0);
+    --shadow-color: oklch(0% 0 0 / 0.3);
+    --overlay-color: oklch(100% 0 0 / 0.9);
+    --link-color: oklch(62.94% 0.2254 330.09);
+    --code-color: oklch(57.66% 0.1816 255.83);
+}
+
+:root[data-theme="dark"] {
+    --bg-color: oklch(20% 0 0);
+    --text-color: oklch(95% 0 0);
+    --border-color: oklch(30% 0 0);
+    --nav-bg: oklch(95% 0 0);
+    --nav-text: oklch(0% 0 0);
+    --shadow-color: oklch(100% 0 0 / 0.3);
+    --overlay-color: oklch(20% 0 0 / 0.9);
+    --link-color: oklch(70% 0.2254 330.09);
+    --code-color: oklch(66.75% 0.1816 255.83);
+}
+
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+        --bg-color: oklch(20% 0 0);
+        --text-color: oklch(95% 0 0);
+        --border-color: oklch(30% 0 0);
+        --nav-bg: oklch(95% 0 0);
+        --nav-text: oklch(0% 0 0);
+        --shadow-color: oklch(100% 0 0 / 0.3);
+        --overlay-color: oklch(20% 0 0 / 0.9);
+        --link-color: oklch(70% 0.2254 330.09);
+        --code-color: oklch(66.75% 0.1816 255.83);
+    }
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'SF Mono', 'IBM Plex Mono', 'Courier', monospace;
+    letter-spacing: -0.5px;
+    text-underline-offset: 3px;
+}
+
+body {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    min-height: 100vh;
+    margin: 0;
+    overflow: hidden;
+}
+
+p {
+    margin-top: 0;
+    padding-top: 0;
+}
+
+a {
+    color: var(--link-color);
+    text-decoration: none;
+    padding: 0 2px;
+    transition: all 0.3s ease;
+}
+
+code, pre {
+    color: var(--code-color);
+}
+
+code a {
+    color: var(--code-color);
+    text-decoration: underline;
+}
+
+code a:hover {
+    background-color: var(--code-color);
+    color: var(--bg-color);
+    text-decoration: none;
+}
+
+a:hover {
+    background-color: var(--link-color);
+    color: var(--bg-color);
+}
+
+div ul {
+    margin-bottom: 0;
+}
+
+nav {
+    position: fixed;
+    top: 0;
+    width: 100%;
+    background-color: var(--nav-bg);
+    z-index: 1000;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 2rem;
+}
+
+nav button span {
+    font-size: 14px;
+}
+
+nav ul {
+    display: flex;
+    justify-content: center;
+    list-style: none;
+    margin: 0;
+}
+
+nav ul li {
+    margin: 0 1rem;
+}
+
+nav ul li a {
+    color: var(--nav-text);
+    text-decoration: none;
+    font-size: 16px;
+    padding: 0.5rem 1rem;
+    transition: background-color 0.3s;
+}
+
+nav ul li a:hover {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    opacity: 0.9;
+}
+
+nav ul li a.active-link {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+}
+
+nav ul li a.active-link:hover {
+    opacity: 0.8;
+}
+
+#toggle-theme {
+    background: none;
+    border: none;
+    color: var(--nav-text);
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.3s;
+}
+
+#toggle-theme:hover {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    opacity: 0.9;
+}
+
+.panels-container {
+    margin-top: 80px;
+    position: relative;
+    height: calc(100vh - 80px);
+    overflow: hidden;
+    padding: 20px;
+}
+
+.panel {
+    position: absolute;
+    width: 45%;
+    max-width: 600px;
+    transition: all 0.3s ease;
+}
+
+.terminal-window {
+    border: 1px solid var(--border-color);
+    background-color: var(--bg-color);
+    width: 100%;
+    position: relative;
+    transition: all 0.3s ease;
+    user-select: none;
+}
+
+.terminal-window::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--overlay-color);
+    transition: opacity 0.3s ease;
+    opacity: 1;
+}
+
+.panel.active .terminal-header {
+    cursor: move;
+}
+
+.panel.active .terminal-content {
+    user-select: text;
+}
+
+.active .terminal-window::after {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.terminal-header {
+    background-color: var(--text-color);
+    font-weight: 600;
+    color: var(--bg-color);
+    padding: 0.5rem 1rem;
+    font-size: 16px;
+    cursor: move;
+}
+
+.terminal-content {
+    cursor: default;
+    padding: 0.5rem 2rem 1rem 2rem;
+    font-size: 14px;
+    line-height: 1.6;
+    white-space: pre-line;
+    min-height: 300px;
+    color: var(--text-color);
+}
+
+ul li {
+    margin-left: 1rem;
+    margin-top: -20px;
+}
+
+#welcome {
+    top: 50%;
+    left: 50%;
+    width: 60%;
+    max-width: 900px;
+    transform: translate(-50%, -50%);
+    z-index: 4;
+}
+
+#about {
+    top: 8%;
+    left: 5%;
+    z-index: 1;
+}
+
+#projects {
+    top: 12%;
+    right: 5%;
+    z-index: 2;
+}
+
+#skills {
+    bottom: 10%;
+    left: 8%;
+    z-index: 3;
+    max-width: 800px;
+}
+
+.active .terminal-window {
+    border: 2px solid var(--text-color);
+    box-shadow: 8px 8px 0 var(--shadow-color);
+}
+
+.active {
+    z-index: 10 !important;
+}
+
+.panel:not(.active) .cursor {
+    display: none;
+}
+
+.panel.dragging .terminal-window {
+    user-select: none;
+}
+
+.panel.dragging {
+    transition: none !important;
+}
+
+@media (max-width: 1200px) {
+    .panel {
+        width: 45%;
+    }
+    .active {
+        width: 75% !important;
+    }
+}
+
+@media (max-width: 768px) {
+    .panel {
+        width: 80%;
+    }
+
+    #about {
+        top: 5%;
+        left: 5%;
+    }
+
+    #projects {
+        top: 5%;
+        right: 5%;
+    }
+
+    #contact {
+        bottom: 5%;
+        left: 5%;
+    }
+}

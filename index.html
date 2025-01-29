@@ -1,11 +1,97 @@
-<!DOCTYPE html> 
-<html lang="en"> 
-<head> 
-    <meta charset="UTF-8"> 
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
-    <title>My First Web Page</title> 
-</head> 
-<body> 
-    <h1>Hi! I am Lythe</h1> 
-</body> 
-</html> 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>my portfolio</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="script.js"></script>
+</head>
+<body>
+    <nav>
+        <ul>
+            <li><a href="#" data-panel="welcome">home</a></li>
+            <li><a href="#" data-panel="about">about</a></li>
+            <li><a href="#" data-panel="projects">projects</a></li>
+            <li><a href="#" data-panel="skills">skills</a></li>
+        </ul>
+        <button id="toggle-theme" aria-label="Toggle theme">
+            <span class="theme-label">toggle light/dark mode</span>
+        </button>
+    </nav>
+
+    <main class="panels-container">
+        <div class="panel" id="welcome">
+            <div class="terminal-window">
+                <div class="terminal-header">welcome.txt</div>
+                <div class="terminal-content">
+                    <h1>welcome!</h1>
+                    <p>
+                    start by navigating to the other windows using the links above or by clicking the windows.
+
+                    you may also drag the active window around by dragging it's title bar.
+
+                    toggle the theme by clicking the button on the top right.
+
+                    this site is best viewed in a modern desktop browser as it uses baseline 2023 features
+                    such as <code><a href="https://developer.mozilla.org/en-US/docs/Web/CSS/color_value/oklch">oklch()</a></code>.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="panel" id="about">
+            <div class="terminal-window">
+                <div class="terminal-header">about.txt</div>
+                <div class="terminal-content">
+                    <h3>about me and the site:</h3>
+                    <p>
+                        I created the site to look and feel like an old text-based windowing system.
+
+                        I am a CS student, and while web programming is not my main focus, this site aims to showcase my progress in the course.
+                    </p>
+                    <p>some important links: <a href="https://github.com/moni-dz">GitHub</a></p>
+                </div>
+            </div>
+        </div>
+
+        <div class="panel" id="projects">
+            <div class="terminal-window">
+                <div class="terminal-header">projects.txt</div>
+                <div class="terminal-content">
+                    <ul class="projects-list">
+                        <li><a href="https://github.com/moni-dz/it101-2-summative">collectify - expense tracker (Java swing app)</a></li>
+                        <li><a href="https://github.com/moni-dz/oop-m2">cloverpass - movie ticketing system (Windows Forms app)</a></li>
+                        <li><a href="https://github.com/moni-dz/Group-5-System-Keiko">keiko - flashcards app (web app using React and Tailwind CSS)</a></li>
+                    </ul>
+                    <p>
+                        existing projects that use web technologies (keiko) showcase my progress in web programming.
+
+                        while the other projects are in Java and C#, they are still a testament to my programming skills.
+
+                        unlike keiko, this site uses vanilla HTML5, CSS3, and JS (ECMAScript 2015 and above) as opposed to React and Tailwind CSS.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="panel" id="skills">
+            <div class="terminal-window">
+                <div class="terminal-header">skills.txt</div>
+                <div class="terminal-content">
+                    this site was built using modern HTML5, CSS3, and JS.
+                    <p>
+                    windows are organized in a hierarchy of <code>&lt;div&gt;</code> tags in HTML,
+                    and the animations are purely handled by CSS transitions and pseudo-classes.
+
+                    semantic HTML tags are used as appropriate.
+                    window dragging, hover effects, and theme toggling is implemented in JS using event listeners.
+
+                    implementing this site is a marker of my progress in this course and a demonstration of my skills.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </main>
+</body>
+</html>
