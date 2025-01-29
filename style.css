@@ -520,16 +520,16 @@ sup.highlight {
     /* font size adjustments */
 
     * {
-        font-size: 0.95rem; /* 15px */
+        font-size: 0.95rem;
     }
 
     section {
-        font-size: 0.875rem; /* 14px */
+        font-size: 0.875rem;
         padding: 1rem 1.5rem 1.5rem 1.5rem;
     }
 
     nav ul li a {
-        font-size: 0.813rem; /* 13px */
+        font-size: 0.813rem;
         padding: 0.25rem 0.5rem;
     }
 
@@ -538,12 +538,16 @@ sup.highlight {
     }
 
     .tab-button {
-        font-size: 0.938rem; /* 15px */
+        font-size: 0.938rem;
+    }
+
+    .theme-label {
+        font-size: 0.75rem;
     }
 
     .terminal-header h3,
     .terminal-header h4 {
-        font-size: 0.938rem; /* 15px */
+        font-size: 0.938rem;
     }
 
     nav {
@@ -563,9 +567,7 @@ sup.highlight {
     }
 
     #toggle-theme {
-        padding: 0.25rem;
-        margin-top: 0.5rem;
-        font-size: 0.75rem;
+        padding: 0.2rem;
     }
 
     body {
