@@ -77,7 +77,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }, {
             threshold: [0.5],
-            rootMargin: '-10% 0px -10% 0px' // Adds a bit of buffer to the top and bottom
+            rootMargin: '-10% 0px -10% 0px'
         });
 
         panels.forEach(panel => observer.observe(panel));
@@ -94,9 +94,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 navLinks.forEach(link => {
                     link.classList.remove('active-link');
-                    if (link.dataset.panel === panel.id) {
-                        link.classList.add('active-link');
-                    }
+                    if (link.dataset.panel === panel.id) link.classList.add('active-link');
                 });
             });
         });
@@ -129,9 +127,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!isDragging) return;
 
             isDragging = false;
-            if (activePanel) {
-                activePanel.classList.remove('dragging');
-            }
+            if (activePanel) activePanel.classList.remove('dragging');
         }
 
         function drag(e) {
@@ -174,5 +170,69 @@ document.addEventListener('DOMContentLoaded', () => {
         const currentTheme = document.documentElement.getAttribute('data-theme');
         const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
         document.documentElement.setAttribute('data-theme', newTheme);
+    });
+
+    const refMapping = {};
+    document.querySelectorAll('sup[id^="ref-"]').forEach(ref => {
+        const refNumber = ref.id.split('-')[1];
+        refMapping[refNumber] = ref.closest('.panel').id;
+    });
+
+    function activatePanel(panel, navId) {
+        if (isMobile) {
+            const navHeight = document.querySelector('nav').offsetHeight;
+            window.scrollTo({
+                top: panel.offsetTop - navHeight,
+                behavior: 'smooth'
+            });
+        } else {
+            panels.forEach(p => p.classList.remove('active'));
+            panel.classList.add('active');
+            activePanel = panel;
+
+            navLinks.forEach(link => {
+                link.classList.remove('active-link');
+                if (link.dataset.panel === navId) {
+                    link.classList.add('active-link');
+                }
+            });
+        }
+    }
+
+    function handleRefClick(sourceId, targetId, highlightElement) {
+        const targetPanel = document.getElementById(targetId);
+        if (!targetPanel) return;
+
+        activatePanel(targetPanel, targetId);
+
+        if (highlightElement) {
+            highlightElement.classList.add('highlight');
+            setTimeout(() => highlightElement.classList.remove('highlight'), 2000);
+        }
+    }
+
+    // forward ref link handling
+    document.querySelectorAll('sup[id^="ref-"]').forEach(ref => {
+        ref.addEventListener('click', (e) => {
+            e.preventDefault();
+            const refNumber = ref.id.split('-')[1];
+            const refsPanel = document.getElementById('refs');
+            const refLink = refsPanel.querySelector(`#back-ref-${refNumber}`);
+            const refAnchor = refLink?.parentElement?.querySelector('a');
+            
+            handleRefClick(ref.id, 'refs', refAnchor);
+        });
+    });
+
+    // backward ref link handling
+    document.querySelector('#refs').querySelectorAll('sup[id^="back-ref-"]').forEach(ref => {
+        ref.addEventListener('click', (e) => {
+            e.preventDefault();
+            const refNumber = ref.id.split('-')[2];
+            const targetPanelId = refMapping[refNumber];
+            const originalRef = document.querySelector(`#ref-${refNumber}`);
+            
+            handleRefClick(ref.id, targetPanelId, originalRef);
+        });
     });
 });

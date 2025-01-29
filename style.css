@@ -24,6 +24,20 @@
     --code-color: oklch(66.75% 0.1816 255.83);
 }
 
+@media (prefers-color-scheme: light) {
+    #html5 {
+        color: oklch(63.37% 0.1544 60.71);
+    }
+    
+    #css3 {
+        color: oklch(51.22% 0.1454 240.56);
+    }
+    
+    #es6 {
+        color: oklch(58.56% 0.1322 93.37);
+    }
+}
+
 @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
         --bg-color: oklch(20% 0 0);
@@ -35,6 +49,18 @@
         --overlay-color: oklch(20% 0 0 / 0.9);
         --link-color: oklch(70% 0.2254 330.09);
         --code-color: oklch(66.75% 0.1816 255.83);
+    }
+
+    #html5 {
+        color: oklch(76.85% 0.1926 60.71);
+    }
+    
+    #css3 {
+        color: oklch(64.55% 0.1751 240.56);
+    }
+    
+    #es6 {
+        color: oklch(87.09% 0.1817 93.37);
     }
 }
 
@@ -240,7 +266,7 @@ ul li {
     width: 60%;
     max-width: 900px;
     transform: translate(-50%, -50%);
-    z-index: 4;
+    z-index: 5;
 }
 
 #about {
@@ -262,6 +288,28 @@ ul li {
     max-width: 800px;
 }
 
+#refs {
+    bottom: 6%;
+    right: 3%;
+    z-index: 4;
+}
+
+sup {
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+sup.highlight {
+    background-color: var(--text-color);
+    color: var(--bg-color);
+    padding: 0 4px;
+    border-radius: 2px;
+}
+
+#refs sup {
+    margin-right: 0.5rem;
+}
+
 .active .terminal-window {
     border: 2px solid var(--text-color);
     box-shadow: 8px 8px 0 var(--shadow-color);
@@ -281,6 +329,19 @@ ul li {
 
 .panel.dragging {
     transition: none !important;
+}
+
+.terminal-content a.highlight {
+    background-color: var(--link-color);
+    color: var(--bg-color);
+    padding: 0 4px;
+    border-radius: 2px;
+    transition: all 0.3s ease;
+}
+
+.terminal-content a.highlight:hover {
+    color: var(--bg-color);
+    opacity: 0.9;
 }
 
 @media (max-width: 1200px) {
