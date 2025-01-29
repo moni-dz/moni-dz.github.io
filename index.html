@@ -50,10 +50,10 @@
         <div class="panel" id="welcome">
             <div class="terminal-window">
                 <header class="terminal-header">
-                    <h4>home.txt</h4>
+                    <h3>home.txt</h3>
                 </header>
                 <section class="terminal-content">
-                    <h1>welcome!</h1>
+                    <h4>welcome!</h4>
                     <p>
                         start by navigating to the other windows using the links above.
 
@@ -68,17 +68,30 @@
         <div class="panel" id="about">
             <div class="terminal-window">
                 <header class="terminal-header">
-                    <h4>about.txt</h4>
+                    <h3>about.txt</h3>
+                    <div class="terminal-tabs">
+                        <button class="tab-button tab-active" data-tab="site">site</button>
+                        <button class="tab-button" data-tab="author">author</button>
+                    </div>
                 </header>
                 <section class="terminal-content">
-                    <h3>about me and the site:</h3>
-                    <p>
+                    <p class="terminal-tab" id="about-site">
                         I created the site to look and feel like an old text-based windowing system<sup id="ref-2">2</sup>.
 
                         I am a CS student, and while web programming is not my main focus, this site aims to showcase my progress in the course.
 
                         some important links: <a href="https://github.com/moni-dz">GitHub</a>
                     </p>
+                    <div class="terminal-tab" id="about-author">
+                        <div id="about-container">
+                            <aside id="about-icon-container">
+                                <img id="about-icon" src="assets/icon.png" alt="myself">
+                            </aside>
+                            <section id="about-text">
+                                <p>hi my name is moni</p>
+                            </section>
+                        </div>
+                    </div>
                 </section>
             </div>
         </div>
@@ -86,7 +99,7 @@
         <div class="panel" id="projects">
             <div class="terminal-window">
                 <header class="terminal-header">
-                    <h4>projects.txt</h4>
+                    <h3>projects.txt</h3>
                 </header>
                 <section class="terminal-content">
                     <ul class="projects-list">
@@ -108,16 +121,16 @@
         <div class="panel" id="skills">
             <div class="terminal-window">
                 <header class="terminal-header">
-                    <h4>skills.txt</h4>
+                    <h3>skills.txt</h3>
                 </header>
                 <section class="terminal-content">
-                    <h3>this site was built using modern <span id="html5">HTML5</span>, <span id="css3">CSS3</span>, and <span id="es6">ES6 JS</span>.</h3>
+                    <h4>this site was built using modern <span id="html5">HTML5</span>, <span id="css3">CSS3</span>, and <span id="es6">ES6 JS</span>.</h3>
                     <p>
-                        windows are organized in a hierarchy of <code>&lt;div&gt;</code> tags in HTML, and the animations are purely handled by CSS transitions and pseudo-classes.
+                        windows are organized in a hierarchy of <code>&lt;div&gt;</code> tags in <span id="html5">HTML</span>, and the animations are purely handled by <span id="css3">CSS</span> transitions and pseudo-classes.
 
                         semantic HTML tags are used, content inside windows use <code>&lt;header&gt;</code> and <code>&lt;section&gt;</code> as needed.
 
-                        window dragging, hover effects, <a href="https://upload.wikimedia.org/wikipedia/commons/a/aa/Philips_PM5544.svg" data-preview="true">image previewing<sub>(try me!)</sub></a>, and theme toggling is implemented in JS using event listeners and DOM selectors.
+                        window dragging, hover effects, <a href="https://upload.wikimedia.org/wikipedia/commons/a/aa/Philips_PM5544.svg" data-preview="true">image previewing<sub>(try me!)</sub></a>, and theme toggling is implemented in <span id="es6">JS</span> using event listeners and DOM selectors.
 
                         this site is <a href="assets/lighthouse.png" data-preview="true">responsive</a> and works well on mobile devices, the experience is slightly different but still functional.
 
@@ -130,7 +143,7 @@
         <div class="panel" id="refs">
             <div class="terminal-window">
                 <header class="terminal-header">
-                    <h4>refs.txt</h4>
+                    <h3>refs.txt</h3>
                 </header>
                 <section class="terminal-content">
                     <div>

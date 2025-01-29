@@ -107,6 +107,11 @@ code a:hover {
     text-decoration: none;
 }
 
+strong {
+    display: inline-block;
+    color: var(--emphasis-color);
+}
+
 /* semantic HTML layout */
 section {
     display: flex;
@@ -124,8 +129,48 @@ section p {
     align-items: center;
 }
 
+section ul {
+    margin: 0rem 0rem -0.5rem 0.6rem;
+}
+
 section ul li {
-    margin: -1rem 1rem 0rem 1rem;
+    position: relative;
+    margin-top: -1rem;
+}
+
+aside {
+    display: flex;
+    flex-direction: column;
+}
+
+/* content layout */
+
+#about-container {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+}
+
+#about-icon-container {
+    flex: 0 0 30%;
+    text-align: center;
+}
+
+#about-icon {
+    max-width: 100%;
+    height: auto;
+    margin-bottom: 0.5rem;
+    filter: grayscale(100%);
+    transition: filter 0.3s ease;
+    border: 0.0625rem solid var(--text-color);
+}
+
+#about-icon:hover {
+    filter: grayscale(0%);
+}
+
+#about-text {
+    flex: 1;
 }
 
 /* nav bar style */
@@ -207,6 +252,12 @@ nav ul li a.active-link:hover {
     width: 45%;
     max-width: 37.5rem;
     transition: all 0.3s ease;
+    transform: translate3d(0, 0, 0);
+    will-change: transform;
+}
+
+.panel.dragging {
+    will-change: transform;
 }
 
 /* panel styling */
@@ -220,10 +271,45 @@ nav ul li a.active-link:hover {
 }
 
 .terminal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     background-color: var(--text-color);
     color: var(--bg-color);
     padding: 0.5rem 1rem;
     cursor: default;
+}
+
+.terminal-tabs {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.terminal-tab {
+    display: none;
+}
+
+.terminal-tab.tab-active {
+    display: block;
+}
+
+.tab-button {
+    background: none;
+    border: none;
+    color: var(--bg-color);
+    padding: 0.25rem 0.5rem;
+    cursor: pointer;
+    opacity: 0.7;
+    transition: opacity 0.3s ease;
+}
+
+.tab-button:hover {
+    opacity: 1;
+}
+
+.tab-button.tab-active {
+    opacity: 1;
+    text-decoration: underline;
 }
 
 /* panel focus state */
@@ -427,6 +513,35 @@ sup.highlight {
 
 /* mobile */
 @media (max-width: 31.25rem) {
+    /* font size adjustments */
+
+    * {
+        font-size: 0.938rem; /* 15px */
+    }
+
+    section {
+        font-size: 0.875rem; /* 14px */
+        padding: 1rem 1.5rem 1.5rem 1.5rem;
+    }
+
+    nav ul li a {
+        font-size: 0.813rem; /* 13px */
+        padding: 0.25rem 0.5rem;
+    }
+
+    section ul li * {
+        font-size: 0.7rem;
+    }    
+
+    .tab-button {
+        font-size: 0.938rem; /* 15px */
+    }
+
+    .terminal-header h3,
+    .terminal-header h4 {
+        font-size: 0.938rem; /* 15px */
+    }
+
     nav {
         padding: 0.5rem;
         height: 5.688rem;
@@ -441,11 +556,6 @@ sup.highlight {
 
     nav ul li {
         margin: 0.25rem;
-
-        a {
-            font-size: 0.75rem;
-            padding: 0.25rem 0.5rem;
-        }
     }
 
     #toggle-theme {
@@ -486,6 +596,36 @@ sup.highlight {
 
     .panel.active .terminal-header {
         cursor: default;
+    }
+
+    .terminal-header {
+        flex-direction: row;
+        padding: 0.75rem;
+        justify-content: space-between;
+    }
+
+    .terminal-tabs {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .tab-button {
+        display: block; /* Show all tabs */
+        padding: 0rem 0.5rem 0rem 0.5rem;
+        margin: 0rem;
+        opacity: 0.7;
+        transition: opacity 0.3s ease;
+    }
+
+    .tab-button:hover {
+        opacity: 1;
+    }
+
+    .tab-button.tab-active {
+        opacity: 1;
+        text-decoration: underline;
     }
 
     #preview {

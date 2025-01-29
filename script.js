@@ -2,16 +2,32 @@ document.addEventListener('DOMContentLoaded', () => {
     const isMobile = window.innerWidth <= 500;
     const navLinks = document.querySelectorAll('nav a');
     const panels = document.querySelectorAll('.panel');
-    const VERTICAL_OFFSET = 80;
-    const CEILING_OFFSET = 25;
-    const FLOOR_OFFSET = 70;
-    const SIDE_OFFSET = 10;
+
+    let containerDimensions = {
+        rect: null,
+        navHeight: 0
+    };
+
+    let resizeTimeout;
     let isDragging = false;
     let activePanel = null;
     let previewPanel = null;
     let sourcePanel = null;
     let startX, startY;
     let initialPanelX, initialPanelY;
+
+    function updateContainerDimensions() {
+        const container = document.querySelector('.panels-container');
+        containerDimensions.rect = container.getBoundingClientRect();
+        containerDimensions.navHeight = document.querySelector('nav').offsetHeight;
+    }
+
+    updateContainerDimensions();
+
+    window.addEventListener('resize', () => {
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(updateContainerDimensions, 100);
+    });
 
     function activatePanel(panel, navId) {
         console.log(isMobile)
@@ -37,26 +53,22 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function calculateBounds(panel) {
-        const container = document.querySelector('.panels-container');
-        const containerRect = container.getBoundingClientRect();
         const panelRect = panel.getBoundingClientRect();
-        const navHeight = document.querySelector('nav').offsetHeight;
-        const headerHeight = panel.querySelector('.terminal-header').offsetHeight;
-
         return {
-            minX: containerRect.left,
-            minY: navHeight - headerHeight - CEILING_OFFSET,
-            maxX: containerRect.right - panelRect.width - SIDE_OFFSET,
-            maxY: containerRect.bottom - panelRect.height - FLOOR_OFFSET
+            minX: containerDimensions.rect.left,
+            minY: containerDimensions.rect.top - containerDimensions.navHeight,
+            maxX: containerDimensions.rect.right - panelRect.width,
+            maxY: containerDimensions.rect.bottom - panelRect.height - containerDimensions.navHeight
         };
     }
 
     function updatePanelPosition(panel, x, y, bounds) {
-        panel.style.left = `${Math.max(bounds.minX, Math.min(bounds.maxX, x))}px`;
-        panel.style.top = `${Math.max(bounds.minY, Math.min(bounds.maxY, y))}px`;
-        panel.style.right = 'auto';
-        panel.style.bottom = 'auto';
-        panel.style.transform = 'none';
+        const boundedX = Math.max(bounds.minX, Math.min(bounds.maxX, x));
+        const boundedY = Math.max(bounds.minY, Math.min(bounds.maxY, y));
+        panel.style.transform = `translate(${boundedX}px, ${boundedY}px)`;
+        panel.style.position = 'absolute';
+        panel.style.left = '0';
+        panel.style.top = '0';
     }
 
     function updateNavLinks(activeId) {
@@ -116,36 +128,43 @@ document.addEventListener('DOMContentLoaded', () => {
             const event = e.touches?.[0] ?? e;
             const panel = event.target.closest('.panel');
             const header = event.target.closest('.terminal-header');
-
+        
             if (!panel || !panel.classList.contains('active') || !header || panel.id === 'preview') return;
-
+        
             isDragging = true;
             activePanel = panel;
             startX = event.clientX;
             startY = event.clientY;
-
+        
             const rect = panel.getBoundingClientRect();
             initialPanelX = rect.left;
             initialPanelY = rect.top;
+            activePanel.dragBounds = calculateBounds(activePanel);
+            activePanel.cachedWidth = rect.width;
+            activePanel.cachedHeight = rect.height;
             panel.classList.add('dragging');
         }
 
         function stopDragging() {
             if (!isDragging) return;
             isDragging = false;
-            activePanel?.classList.remove('dragging');
+            if (activePanel) {
+                activePanel.dragBounds = null;
+                activePanel.classList.remove('dragging');
+            }
         }
 
         function drag(e) {
             if (!isDragging || !activePanel) return;
             e.preventDefault();
-
-            const event = e.touches?.[0] ?? e;
-            const [dx, dy] = [event.clientX - startX, event.clientY - startY];
-            const [x, y] = [initialPanelX + dx, initialPanelY + dy - VERTICAL_OFFSET];
-
-            const bounds = calculateBounds(activePanel);
-            updatePanelPosition(activePanel, x, y, bounds);
+        
+            requestAnimationFrame(() => {
+                const event = e.touches?.[0] ?? e;
+                const [dx, dy] = [event.clientX - startX, event.clientY - startY];
+                const [x, y] = [initialPanelX + dx, initialPanelY + dy - containerDimensions.navHeight];
+                
+                updatePanelPosition(activePanel, x, y, activePanel.dragBounds);
+            });
         }
 
         // mouse events
@@ -256,6 +275,27 @@ document.addEventListener('DOMContentLoaded', () => {
         document.documentElement.setAttribute('data-theme', currentTheme === 'dark' ? 'light' : 'dark');
     });
 
+    // tabs functionality
+    const tabButtons = document.querySelectorAll('.tab-button');
+    const tabs = document.querySelectorAll('.terminal-tab');
+    const defaultTab = tabButtons[0].dataset.tab;
+    
+    tabs.forEach(tab => { tab.classList.toggle('tab-active', tab.id.split('-')[1] === defaultTab); });
+    tabButtons.forEach(button => { button.classList.toggle('tab-active', button.dataset.tab === defaultTab); });
+    
+    tabButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            const tabName = button.dataset.tab;
+            
+            tabButtons.forEach(btn => btn.classList.remove('tab-active'));
+            button.classList.add('tab-active');
+            
+            tabs.forEach(tab => { 
+                tab.classList.toggle('tab-active', tab.id.split('-')[1] === tabName); 
+            });
+        });
+    });
+
     // image preview functionality
     function createPreviewPanel() {
         const panel = document.createElement('div');
@@ -317,6 +357,43 @@ document.addEventListener('DOMContentLoaded', () => {
             showPreview(link.href, e.target.closest('.panel'));
         });
     });
+
+    // tab swiping on mobile
+    function initializeTabSwipes() {
+        if (!isMobile) return;
+        
+        const tabContainer = document.querySelector('.terminal-tabs');
+        let touchStartX = 0;
+        let touchEndX = 0;
+    
+        const handleSwipe = () => {
+            const swipeThreshold = 50; // minimum swipe distance
+            const swipeDistance = touchEndX - touchStartX;
+            
+            if (Math.abs(swipeDistance) < swipeThreshold) return;
+            
+            const tabs = [...document.querySelectorAll('.tab-button')];
+            const activeTab = document.querySelector('.tab-button.active');
+            const currentIndex = tabs.indexOf(activeTab);
+            
+            // swipe left moves forward, right moves backward
+            const direction = swipeDistance > 0 ? -1 : 1;
+            const newIndex = (currentIndex + direction + tabs.length) % tabs.length;
+            
+            tabs[newIndex].click();
+        }
+    
+        tabContainer.addEventListener('touchstart', (e) => {
+            touchStartX = e.touches[0].clientX;
+        }, { passive: true });
+    
+        tabContainer.addEventListener('touchend', (e) => {
+            touchEndX = e.changedTouches[0].clientX;
+            handleSwipe();
+        }, { passive: true });
+    }
+
+    initializeTabSwipes();
 
     if (!isMobile) {
         const welcomePanel = document.getElementById('welcome');
