@@ -164,7 +164,7 @@ nav ul li a.active-link:hover { opacity: 0.8; }
 .panels-container {
     margin-top: 3.75rem;
     position: relative;
-    height: calc(100vh - 80px);
+    height: calc(100vh - 3.75rem);
     overflow: hidden;
     padding: 20px;
 }
@@ -347,7 +347,7 @@ sup.highlight {
 @media (max-width: 500px) {
     nav {
         padding: 0.5rem;
-        height: auto;
+        height: 5.688rem;
         flex-direction: column;
     }
 
@@ -374,8 +374,8 @@ sup.highlight {
     body { overflow-y: auto; }
 
     .panels-container {
-        margin-top: 6rem;
-        height: auto;
+        margin-top: 5.688rem;
+        height: calc(100vh - 5.688rem);
         overflow-y: auto;
         padding: 1rem;
     }
