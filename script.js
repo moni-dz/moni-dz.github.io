@@ -3,7 +3,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const navLinks = document.querySelectorAll('nav a');
     const panels = document.querySelectorAll('.panel');
     const VERTICAL_OFFSET = 80;
-    const CEILING_OFFSET = 20;
+    const CEILING_OFFSET = 25;
+    const FLOOR_OFFSET = 70;
+    const SIDE_OFFSET = 10;
     let isDragging = false;
     let activePanel = null;
     let previewPanel = null;
@@ -41,8 +43,8 @@ document.addEventListener('DOMContentLoaded', () => {
         return {
             minX: containerRect.left,
             minY: navHeight - headerHeight - CEILING_OFFSET,
-            maxX: containerRect.right - panelRect.width,
-            maxY: containerRect.bottom - panelRect.height
+            maxX: containerRect.right - panelRect.width - SIDE_OFFSET,
+            maxY: containerRect.bottom - panelRect.height - FLOOR_OFFSET
         };
     }
     

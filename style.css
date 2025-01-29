@@ -109,7 +109,7 @@ nav {
     width: 100%;
     background-color: var(--nav-bg);
     z-index: 1000;
-    height: 60px;
+    height: 3.75rem;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -162,7 +162,7 @@ nav ul li a.active-link:hover { opacity: 0.8; }
 
 /* panel layout */
 .panels-container {
-    margin-top: 80px;
+    margin-top: 3.75rem;
     position: relative;
     height: calc(100vh - 80px);
     overflow: hidden;
