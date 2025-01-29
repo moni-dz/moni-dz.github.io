@@ -72,6 +72,10 @@ body {
 }
 
 /* additional font styling */
+h3 {
+    font-size: 1.063rem;
+}
+
 p {
     display: inline-block;
     margin-top: 0;
@@ -516,7 +520,7 @@ sup.highlight {
     /* font size adjustments */
 
     * {
-        font-size: 0.938rem; /* 15px */
+        font-size: 0.95rem; /* 15px */
     }
 
     section {
@@ -531,7 +535,7 @@ sup.highlight {
 
     section ul li * {
         font-size: 0.7rem;
-    }    
+    }
 
     .tab-button {
         font-size: 0.938rem; /* 15px */
