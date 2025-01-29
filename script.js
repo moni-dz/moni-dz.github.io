@@ -6,16 +6,23 @@ document.addEventListener('DOMContentLoaded', () => {
     const CEILING_OFFSET = 20;
     let isDragging = false;
     let activePanel = null;
+    let previewPanel = null;
+    let sourcePanel = null;
     let startX, startY;
     let initialPanelX, initialPanelY;
 
     function activatePanel(panel, navId) {
         if (isMobile) {
             const navHeight = document.querySelector('nav').offsetHeight;
+            panels.forEach(p => p.classList.remove('active'));
+            panel.classList.add('active');
+
             window.scrollTo({
                 top: panel.offsetTop - navHeight,
                 behavior: 'smooth'
             });
+
+            updateNavLinks(navId);
         } else {
             panels.forEach(p => p.classList.remove('active'));
             panel.classList.add('active');
@@ -59,6 +66,28 @@ document.addEventListener('DOMContentLoaded', () => {
             const refNumber = ref.id.split('-')[1];
             refMapping[refNumber] = ref.closest('.panel').id;
         });
+    
+        // forward refs
+        document.querySelectorAll('sup[id^="ref-"]').forEach(ref => {
+            ref.addEventListener('click', (e) => {
+                e.preventDefault();
+                const refNumber = ref.id.split('-')[1];
+                const refLink = document.querySelector(`#back-ref-${refNumber}`);
+                handleRefClick('refs', refLink);
+            });
+        });
+    
+        // back refs
+        document.querySelector('#refs').querySelectorAll('sup[id^="back-ref-"]').forEach(ref => {
+            ref.addEventListener('click', (e) => {
+                e.preventDefault();
+                const refNumber = ref.id.split('-')[2];
+                const targetPanelId = refMapping[refNumber];
+                const originalRef = document.querySelector(`#ref-${refNumber}`);
+                handleRefClick(targetPanelId, originalRef);
+            });
+        });
+    
         return refMapping;
     }
 
@@ -81,7 +110,9 @@ document.addEventListener('DOMContentLoaded', () => {
         function startDragging(e) {
             const panel = e.target.closest('.panel');
             const header = e.target.closest('.terminal-header');
-            if (!panel || !panel.classList.contains('active') || !header) return;
+
+            // also exclude the preview panel
+            if (!panel || !panel.classList.contains('active') || !header || panel.id === 'preview') return;
 
             isDragging = true;
             activePanel = panel;
@@ -116,7 +147,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.addEventListener('mouseup', stopDragging);
         document.addEventListener('mouseleave', stopDragging);
     }
-
+    
     // handle clicks in nav bar
     navLinks.forEach(link => {
         link.addEventListener('click', (e) => {
@@ -160,10 +191,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const deviceMessage = document.getElementById('device-specific-message');
 
     if (isMobile) {
-        deviceMessage.textContent = "on mobile you may scroll to focus the windows.";
+        deviceMessage.textContent = `on mobile you may scroll to focus the windows.
+        
+        toggle the theme by clicking the button below the 'projects' link.`;
         const observer = new IntersectionObserver((entries) => {
             entries.forEach(entry => {
-                if (entry.isIntersecting && entry.intersectionRatio >= 0.5) {
+                // ignore the preview panel
+                if (entry.target.id === 'preview') return;
+
+                if (entry.isIntersecting && entry.intersectionRatio >= 0.95) {
                     const panel = entry.target;
                     panels.forEach(p => p.classList.remove('active'));
                     panel.classList.add('active');
@@ -171,13 +207,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
         }, {
-            threshold: [0.5],
-            rootMargin: '-10% 0px -10% 0px'
+            threshold: [0.95],
+            rootMargin: '-5% 0px'
         });
     
-        panels.forEach(panel => observer.observe(panel));
+        // observe all panels except the preview panel
+        panels.forEach(panel => { if (panel.id !== 'preview') observer.observe(panel); });
     } else {
-        deviceMessage.textContent = "on desktop you may click the windows to bring them into focus.";
+        deviceMessage.textContent = `on desktop you may click the windows to bring them into focus.
+        you may also drag the active window around by dragging it's title bar.
+        
+        toggle the theme by clicking the button on the top right.`;
         panels.forEach(panel => {
             panel.addEventListener('mousedown', (e) => {
                 if (e.target.closest('.terminal-header')) return;
@@ -202,5 +242,67 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('toggle-theme')?.addEventListener('click', () => {
         const currentTheme = document.documentElement.getAttribute('data-theme');
         document.documentElement.setAttribute('data-theme', currentTheme === 'dark' ? 'light' : 'dark');
+    });
+
+    // image preview functionality
+    function createPreviewPanel() {
+        const panel = document.createElement('div');
+        panel.className = 'panel';
+        panel.id = 'preview';
+        
+        panel.innerHTML = `
+            <div class="terminal-window">
+                <header class="terminal-header"><h4>web preview ${isMobile ? "(click title bar to dismiss)" : "(click outside to dismiss)"}</h4></header>
+                <section class="terminal-content">
+                    <div class="preview-container">
+                        <iframe frameborder="0" loading="lazy"></iframe>
+                    </div>
+                </section>
+            </div>
+        `;
+        
+        document.querySelector('.panels-container').appendChild(panel);
+        return panel;
+    }
+
+    function showPreview(url, source) {
+        sourcePanel = source
+        if (!previewPanel) previewPanel = createPreviewPanel();
+
+        const iframe = previewPanel.querySelector('iframe');
+        iframe.src = url;
+
+        panels.forEach(p => p.classList.remove('active'));
+        previewPanel.classList.add('active');
+
+        const destroyInactive = (e) => {
+            const clickedPanel = e.target.closest('.panel');
+
+            // destroy the preview panel if the user clicks outside of it on desktop, or if the user clicks on the preview panel on mobile
+            if (isMobile) {
+                if (clickedPanel === previewPanel) {
+                    previewPanel.remove();
+                    previewPanel = null;
+                    document.removeEventListener('mousedown', destroyInactive);
+                    if (sourcePanel) activatePanel(sourcePanel, sourcePanel.id);
+                }
+            } else {
+                if (clickedPanel !== previewPanel) {
+                    previewPanel.remove();
+                    previewPanel = null;
+                    document.removeEventListener('mousedown', destroyInactive);
+                    if (sourcePanel) activatePanel(sourcePanel, sourcePanel.id);
+                }
+            }
+        };
+
+        document.addEventListener('mousedown', destroyInactive);
+    }
+
+    document.querySelectorAll('a[data-preview="true"]').forEach(link => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            showPreview(link.href, e.target.closest('.panel'));
+        });
     });
 });
