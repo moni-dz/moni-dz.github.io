@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const isMobile = window.innerWidth <= 768;
+    const isMobile = window.innerWidth <= 500;
     const navLinks = document.querySelectorAll('nav a');
     const panels = document.querySelectorAll('.panel');
     const VERTICAL_OFFSET = 80;
@@ -14,16 +14,19 @@ document.addEventListener('DOMContentLoaded', () => {
     let initialPanelX, initialPanelY;
 
     function activatePanel(panel, navId) {
+        console.log(isMobile)
         if (isMobile) {
             const navHeight = document.querySelector('nav').offsetHeight;
+            const marginTop = parseFloat(getComputedStyle(document.querySelector('.panels-container')).marginTop);
+            
             panels.forEach(p => p.classList.remove('active'));
             panel.classList.add('active');
-
+    
             window.scrollTo({
-                top: panel.offsetTop - navHeight,
+                top: panel.offsetTop + marginTop - navHeight,
                 behavior: 'smooth'
             });
-
+    
             updateNavLinks(navId);
         } else {
             panels.forEach(p => p.classList.remove('active'));
@@ -110,17 +113,17 @@ document.addEventListener('DOMContentLoaded', () => {
         if (isMobile) return;
 
         function startDragging(e) {
-            const panel = e.target.closest('.panel');
-            const header = e.target.closest('.terminal-header');
-
-            // also exclude the preview panel
+            const event = e.touches?.[0] ?? e;
+            const panel = event.target.closest('.panel');
+            const header = event.target.closest('.terminal-header');
+    
             if (!panel || !panel.classList.contains('active') || !header || panel.id === 'preview') return;
-
+    
             isDragging = true;
             activePanel = panel;
-            startX = e.clientX;
-            startY = e.clientY;
-
+            startX = event.clientX;
+            startY = event.clientY;
+    
             const rect = panel.getBoundingClientRect();
             initialPanelX = rect.left;
             initialPanelY = rect.top;
@@ -136,18 +139,26 @@ document.addEventListener('DOMContentLoaded', () => {
         function drag(e) {
             if (!isDragging || !activePanel) return;
             e.preventDefault();
-
-            const [dx, dy] = [e.clientX - startX, e.clientY - startY];
+    
+            const event = e.touches?.[0] ?? e;
+            const [dx, dy] = [event.clientX - startX, event.clientY - startY];
             const [x, y] = [initialPanelX + dx, initialPanelY + dy - VERTICAL_OFFSET];
-
+    
             const bounds = calculateBounds(activePanel);
             updatePanelPosition(activePanel, x, y, bounds);
         }
 
+        // mouse events
         document.addEventListener('mousedown', startDragging);
         document.addEventListener('mousemove', drag);
         document.addEventListener('mouseup', stopDragging);
         document.addEventListener('mouseleave', stopDragging);
+
+        // touch events
+        document.addEventListener('touchstart', startDragging, { passive: false });
+        document.addEventListener('touchmove', drag, { passive: false });
+        document.addEventListener('touchend', stopDragging);
+        document.addEventListener('touchcancel', stopDragging);
     }
     
     // handle clicks in nav bar
@@ -161,9 +172,6 @@ document.addEventListener('DOMContentLoaded', () => {
             activatePanel(targetPanel, targetId);
         });
     });
-
-    document.getElementById('welcome').classList.add('active');
-    document.querySelector('[data-panel="welcome"]').classList.add('active-link');
 
     const refMapping = initializeRefs();
     initializeDragging();
@@ -196,6 +204,7 @@ document.addEventListener('DOMContentLoaded', () => {
         deviceMessage.textContent = `on mobile you may scroll to focus the windows.
         
         toggle the theme by clicking the button below the 'projects' link.`;
+
         const observer = new IntersectionObserver((entries) => {
             entries.forEach(entry => {
                 // ignore the preview panel
@@ -216,10 +225,11 @@ document.addEventListener('DOMContentLoaded', () => {
         // observe all panels except the preview panel
         panels.forEach(panel => { if (panel.id !== 'preview') observer.observe(panel); });
     } else {
-        deviceMessage.textContent = `on desktop you may click the windows to bring them into focus.
+        deviceMessage.textContent = `on desktop or tablets you may click or touch the windows to bring them into focus.
         you may also drag the active window around by dragging it's title bar.
         
         toggle the theme by clicking the button on the top right.`;
+        
         panels.forEach(panel => {
             panel.addEventListener('mousedown', (e) => {
                 if (e.target.closest('.terminal-header')) return;
@@ -307,4 +317,9 @@ document.addEventListener('DOMContentLoaded', () => {
             showPreview(link.href, e.target.closest('.panel'));
         });
     });
+
+    if (!isMobile) {
+        const welcomePanel = document.getElementById('welcome');
+        activatePanel(welcomePanel, 'welcome');
+    }
 });
