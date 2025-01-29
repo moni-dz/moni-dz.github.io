@@ -56,9 +56,13 @@ body {
 }
 
 /* additional font styling */
-p { margin-top: 0; }
+p {
+    display: inline-block;
+    margin-top: 0;
+}
 
 a {
+    display: inline-block;
     color: var(--link-color);
     text-decoration: none;
     padding: 0 2px;
@@ -70,7 +74,10 @@ a:hover {
     color: var(--bg-color);
 }
 
-code, pre { color: var(--code-color); }
+code, pre {
+    display: inline-block;
+    color: var(--code-color);
+}
 
 code a {
     color: var(--code-color);
