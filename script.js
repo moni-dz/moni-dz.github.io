@@ -18,15 +18,15 @@ document.addEventListener('DOMContentLoaded', () => {
         if (isMobile) {
             const container = document.querySelector('.panels-container');
             const navHeight = document.querySelector('nav').offsetHeight;
-            
+
             panels.forEach(p => p.classList.remove('active'));
             panel.classList.add('active');
-    
+
             container.scrollTo({
                 top: panel.offsetTop - navHeight / 2,
                 behavior: 'smooth'
             });
-    
+
             updateNavLinks(navId);
         } else {
             panels.forEach(p => p.classList.remove('active'));
@@ -42,7 +42,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const panelRect = panel.getBoundingClientRect();
         const navHeight = document.querySelector('nav').offsetHeight;
         const headerHeight = panel.querySelector('.terminal-header').offsetHeight;
-    
+
         return {
             minX: containerRect.left,
             minY: navHeight - headerHeight - CEILING_OFFSET,
@@ -50,7 +50,7 @@ document.addEventListener('DOMContentLoaded', () => {
             maxY: containerRect.bottom - panelRect.height - FLOOR_OFFSET
         };
     }
-    
+
     function updatePanelPosition(panel, x, y, bounds) {
         panel.style.left = `${Math.max(bounds.minX, Math.min(bounds.maxX, x))}px`;
         panel.style.top = `${Math.max(bounds.minY, Math.min(bounds.maxY, y))}px`;
@@ -71,7 +71,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const refNumber = ref.id.split('-')[1];
             refMapping[refNumber] = ref.closest('.panel').id;
         });
-    
+
         // forward refs
         document.querySelectorAll('sup[id^="ref-"]').forEach(ref => {
             ref.addEventListener('click', (e) => {
@@ -81,7 +81,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 handleRefClick('refs', refLink);
             });
         });
-    
+
         // back refs
         document.querySelector('#refs').querySelectorAll('sup[id^="back-ref-"]').forEach(ref => {
             ref.addEventListener('click', (e) => {
@@ -92,7 +92,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 handleRefClick(targetPanelId, originalRef);
             });
         });
-    
+
         return refMapping;
     }
 
@@ -116,14 +116,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const event = e.touches?.[0] ?? e;
             const panel = event.target.closest('.panel');
             const header = event.target.closest('.terminal-header');
-    
+
             if (!panel || !panel.classList.contains('active') || !header || panel.id === 'preview') return;
-    
+
             isDragging = true;
             activePanel = panel;
             startX = event.clientX;
             startY = event.clientY;
-    
+
             const rect = panel.getBoundingClientRect();
             initialPanelX = rect.left;
             initialPanelY = rect.top;
@@ -139,11 +139,11 @@ document.addEventListener('DOMContentLoaded', () => {
         function drag(e) {
             if (!isDragging || !activePanel) return;
             e.preventDefault();
-    
+
             const event = e.touches?.[0] ?? e;
             const [dx, dy] = [event.clientX - startX, event.clientY - startY];
             const [x, y] = [initialPanelX + dx, initialPanelY + dy - VERTICAL_OFFSET];
-    
+
             const bounds = calculateBounds(activePanel);
             updatePanelPosition(activePanel, x, y, bounds);
         }
@@ -160,7 +160,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.addEventListener('touchend', stopDragging);
         document.addEventListener('touchcancel', stopDragging);
     }
-    
+
     // handle clicks in nav bar
     navLinks.forEach(link => {
         link.addEventListener('click', (e) => {
@@ -221,7 +221,7 @@ document.addEventListener('DOMContentLoaded', () => {
             threshold: [0.95],
             rootMargin: '-5% 0px'
         });
-    
+
         // observe all panels except the preview panel
         panels.forEach(panel => { if (panel.id !== 'preview') observer.observe(panel); });
     } else {
@@ -229,7 +229,7 @@ document.addEventListener('DOMContentLoaded', () => {
         you may also drag the active window around by dragging it's title bar.
         
         toggle the theme by clicking the button on the top right.`;
-        
+
         panels.forEach(panel => {
             panel.addEventListener('mousedown', (e) => {
                 if (e.target.closest('.terminal-header')) return;
@@ -261,7 +261,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const panel = document.createElement('div');
         panel.className = 'panel';
         panel.id = 'preview';
-        
+
         panel.innerHTML = `
             <div class="terminal-window">
                 <header class="terminal-header"><h4>web preview ${isMobile ? "(click title bar to dismiss)" : "(click outside to dismiss)"}</h4></header>
@@ -272,7 +272,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 </section>
             </div>
         `;
-        
+
         document.querySelector('.panels-container').appendChild(panel);
         return panel;
     }

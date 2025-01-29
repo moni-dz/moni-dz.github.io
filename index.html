@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -7,6 +8,7 @@
     <link rel="stylesheet" href="style.css">
     <script src="script.js"></script>
 </head>
+
 <body>
     <nav>
         <ul>
@@ -24,15 +26,20 @@
     <main class="panels-container">
         <div class="panel" id="welcome">
             <div class="terminal-window">
-                <header class="terminal-header"><h4>home.txt</h4></header>
+                <header class="terminal-header">
+                    <h4>home.txt</h4>
+                </header>
                 <section class="terminal-content">
                     <h1>welcome!</h1>
                     <p>
-                    start by navigating to the other windows using the links above.
-                    
-                    <span id="device-specific-message"></span>
+                        start by navigating to the other windows using the links above.
 
-                    this site is best viewed in a modern up-to-date browser as it uses <a href="https://developer.mozilla.org/en-US/docs/Glossary/Baseline/Compatibility">baseline 2023</a> features such as <code><a href="https://developer.mozilla.org/en-US/docs/Web/CSS/color_value/oklch">oklch()</a><sup id="ref-1">1</sup></code>.
+                        <span id="device-specific-message"></span>
+
+                        this site is best viewed in a modern up-to-date browser as it uses <a
+                            href="https://developer.mozilla.org/en-US/docs/Glossary/Baseline/Compatibility">baseline
+                            2023</a> features such as
+                        <code><a href="https://developer.mozilla.org/en-US/docs/Web/CSS/color_value/oklch">oklch()</a><sup id="ref-1">1</sup></code>.
                     </p>
                 </section>
             </div>
@@ -40,13 +47,17 @@
 
         <div class="panel" id="about">
             <div class="terminal-window">
-                <header class="terminal-header"><h4>about.txt</h4></header>
+                <header class="terminal-header">
+                    <h4>about.txt</h4>
+                </header>
                 <section class="terminal-content">
                     <h3>about me and the site:</h3>
                     <p>
-                        I created the site to look and feel like an old text-based windowing system<sup id="ref-2">2</sup>.
+                        I created the site to look and feel like an old text-based windowing system<sup
+                            id="ref-2">2</sup>.
 
-                        I am a CS student, and while web programming is not my main focus, this site aims to showcase my progress in the course.
+                        I am a CS student, and while web programming is not my main focus, this site aims to showcase my
+                        progress in the course.
 
                         some important links: <a href="https://github.com/moni-dz">GitHub</a>
                     </p>
@@ -56,19 +67,26 @@
 
         <div class="panel" id="projects">
             <div class="terminal-window">
-                <header class="terminal-header"><h4>projects.txt</h4></header>
+                <header class="terminal-header">
+                    <h4>projects.txt</h4>
+                </header>
                 <section class="terminal-content">
                     <ul class="projects-list">
-                        <li><a href="https://github.com/moni-dz/it101-2-summative"><b>collectify</b> - <i>expense tracker (Java swing app)</i></a></li>
-                        <li><a href="https://github.com/moni-dz/oop-m2"><b>cloverpass</b> - <i>movie ticketing system (Windows Forms app)</i></a></li>
-                        <li><a href="https://github.com/moni-dz/Group-5-System-Keiko"><b>keiko</b> - <i>flashcards app (web app using React and Tailwind CSS)</i></a></li>
+                        <li><a href="https://github.com/moni-dz/it101-2-summative"><b>collectify</b> - <i>expense
+                                    tracker (Java swing app)</i></a></li>
+                        <li><a href="https://github.com/moni-dz/oop-m2"><b>cloverpass</b> - <i>movie ticketing system
+                                    (Windows Forms app)</i></a></li>
+                        <li><a href="https://github.com/moni-dz/Group-5-System-Keiko"><b>keiko</b> - <i>flashcards app
+                                    (web app using React and Tailwind CSS)</i></a></li>
                     </ul>
                     <p>
                         existing projects that use web technologies (keiko) showcase my progress in web programming.
 
-                        while the other projects are in Java and C#, they are still a testament to my programming skills.
+                        while the other projects are in Java and C#, they are still a testament to my programming
+                        skills.
 
-                        unlike keiko, this site uses vanilla HTML5, CSS3, and JS (ECMAScript 2015 and above) as opposed to React and Tailwind CSS.
+                        unlike keiko, this site uses vanilla HTML5, CSS3, and JS (ECMAScript 2015 and above) as opposed
+                        to React and Tailwind CSS.
                     </p>
                 </section>
             </div>
@@ -76,20 +94,29 @@
 
         <div class="panel" id="skills">
             <div class="terminal-window">
-                <header class="terminal-header"><h4>skills.txt</h4></header>
+                <header class="terminal-header">
+                    <h4>skills.txt</h4>
+                </header>
                 <section class="terminal-content">
-                    <h3>this site was built using modern <span id="html5">HTML5</span>, <span id="css3">CSS3</b>, and <span id="es6">ES6 JS</span>.</h3>
+                    <h3>this site was built using modern <span id="html5">HTML5</span>, <span id="css3">CSS3</b>, and
+                            <span id="es6">ES6 JS</span>.</h3>
                     <p>
-                    windows are organized in a hierarchy of <code>&lt;div&gt;</code> tags in HTML,
-                    and the animations are purely handled by CSS transitions and pseudo-classes.
+                        windows are organized in a hierarchy of <code>&lt;div&gt;</code> tags in HTML,
+                        and the animations are purely handled by CSS transitions and pseudo-classes.
 
-                    semantic HTML tags are used, content inside windows use <code>&lt;header&gt;</code> and <code>&lt;section&gt;</code> as needed.
+                        semantic HTML tags are used, content inside windows use <code>&lt;header&gt;</code> and
+                        <code>&lt;section&gt;</code> as needed.
 
-                    window dragging, hover effects, <a href="https://upload.wikimedia.org/wikipedia/commons/a/aa/Philips_PM5544.svg" data-preview="true">image previewing<sub>(try me!)</sub></a>, and theme toggling is implemented in JS using event listeners and DOM selectors.
+                        window dragging, hover effects, <a
+                            href="https://upload.wikimedia.org/wikipedia/commons/a/aa/Philips_PM5544.svg"
+                            data-preview="true">image previewing<sub>(try me!)</sub></a>, and theme toggling is
+                        implemented in JS using event listeners and DOM selectors.
 
-                    this site is responsive and works well on mobile devices, the experience is slightly different but still functional.
+                        this site is responsive and works well on mobile devices, the experience is slightly different
+                        but still functional.
 
-                    implementing this site is a marker of my progress in this course and a demonstration of my skills.
+                        implementing this site is a marker of my progress in this course and a demonstration of my
+                        skills.
                     </p>
                 </section>
             </div>
@@ -97,17 +124,23 @@
 
         <div class="panel" id="refs">
             <div class="terminal-window">
-                <header class="terminal-header"><h4>refs.txt</h4></header>
+                <header class="terminal-header">
+                    <h4>refs.txt</h4>
+                </header>
                 <section class="terminal-content">
                     <div>
-                        <sup id="back-ref-1">1</sup> <a href="https://evilmartians.com/chronicles/oklch-in-css-why-quit-rgb-hsl">OKLCH in CSS: why we moved from RGB and HSL</a>
+                        <sup id="back-ref-1">1</sup> <a
+                            href="https://evilmartians.com/chronicles/oklch-in-css-why-quit-rgb-hsl">OKLCH in CSS: why
+                            we moved from RGB and HSL</a>
                     </div>
                     <div>
-                        <sup id="back-ref-2">2</sup> <a href="https://urbanjost.github.io/M_ncurses/images/example.gif" data-preview="true">ncurses (click to preview)</a>
+                        <sup id="back-ref-2">2</sup> <a href="https://urbanjost.github.io/M_ncurses/images/example.gif"
+                            data-preview="true">ncurses (click to preview)</a>
                     </div>
                 </section>
             </div>
         </div>
     </main>
 </body>
+
 </html>
