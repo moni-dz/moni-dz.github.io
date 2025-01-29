@@ -16,14 +16,14 @@ document.addEventListener('DOMContentLoaded', () => {
     function activatePanel(panel, navId) {
         console.log(isMobile)
         if (isMobile) {
+            const container = document.querySelector('.panels-container');
             const navHeight = document.querySelector('nav').offsetHeight;
-            const marginTop = parseFloat(getComputedStyle(document.querySelector('.panels-container')).marginTop);
             
             panels.forEach(p => p.classList.remove('active'));
             panel.classList.add('active');
     
-            window.scrollTo({
-                top: panel.offsetTop + marginTop - navHeight,
+            container.scrollTo({
+                top: panel.offsetTop - navHeight / 2,
                 behavior: 'smooth'
             });
     
