@@ -310,6 +310,10 @@ sup.highlight {
     margin-right: 0.5rem;
 }
 
+#refs .terminal-content {
+    min-height: auto;
+}
+
 .active .terminal-window {
     border: 2px solid var(--text-color);
     box-shadow: 8px 8px 0 var(--shadow-color);
