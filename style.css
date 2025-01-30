@@ -481,7 +481,7 @@ sup.highlight {
 /* image preview styles */
 #preview {
     position: fixed;
-    top: 50%;
+    top: calc(50% + 3.75rem/2);
     left: 50%;
     transform: translate(-50%, -50%);
     width: 90%;
