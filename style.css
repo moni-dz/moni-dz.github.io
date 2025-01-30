@@ -2,16 +2,14 @@
 :root {
     color-scheme: light dark;
     --bg-color: light-dark(oklch(92.8% 0 0), oklch(21.78% 0 0));
-    --text-color: light-dark(oklch(34.96% 0.0141 274.5), oklch(89.93% 0.0164 262.75));
+    --text-color: light-dark(oklch(22.25% 0.0141 274.5), oklch(89.93% 0.0164 262.75));
     --border-color: light-dark(oklch(80% 0 0), oklch(30% 0 0));
-    --nav-bg: light-dark(oklch(34.96% 0.0141 274.5), oklch(89.93% 0.0164 262.75));
-    --nav-text: light-dark(oklch(92.8% 0 0), oklch(21.78% 0 0));
     --shadow-color: light-dark(oklch(0% 0 0 / 0.3), oklch(100% 0 0 / 0.3));
     --overlay-color: light-dark(oklch(100% 0 0 / 0.9), oklch(20% 0 0 / 0.9));
-    --link-color: light-dark(oklch(64.91% 0.1269 299.1), oklch(72.36% 0.0454 298.54));
-    --code-color: light-dark(oklch(64.98% 0.0915 253.74), oklch(72.04% 0.0912 253.56));
-    --emphasis-color: light-dark(oklch(60.01% 0.1359 19.2), oklch(72.64% 0.1015 17.52));
-    --abbr-color: light-dark(oklch(64.95% 0.0678 207.03), oklch(71.95% 0.0684 206.76));
+    --link-color: light-dark(oklch(42.54% 0.1269 299.1), oklch(72.36% 0.0454 298.54));
+    --code-color: light-dark(oklch(39.07% 0.0915 253.74), oklch(72.04% 0.0912 253.56));
+    --emphasis-color: light-dark(oklch(40% 0.1359 19.2), oklch(75.38% 0.1015 17.52));
+    --abbr-color: light-dark(oklch(38.35% 0.0678 207.03), oklch(71.95% 0.0684 206.76));
     --bg-opacity: 0.2;
 }
 
@@ -41,15 +39,15 @@ body {
 
 /* additional font styling */
 #html5 {
-    color: light-dark(oklch(63.37% 0.1544 60.71), oklch(76.85% 0.1926 60.71));
+    color: light-dark(oklch(40.37% 0.1544 60.71), oklch(76.85% 0.1926 60.71));
 }
 
 #css3 {
-    color: light-dark(oklch(51.22% 0.1454 240.56), oklch(64.55% 0.1751 240.56));
+    color: light-dark(oklch(37.87% 0.1454 255.71), oklch(73.7% 0.1548 241.47));
 }
 
 #es6 {
-    color: light-dark(oklch(58.56% 0.1322 93.37), oklch(87.09% 0.1817 93.37));
+    color: light-dark(oklch(40.56% 0.1322 93.37), oklch(87.09% 0.1817 93.37));
 }
 
 h3 {
@@ -115,11 +113,7 @@ section {
     white-space: pre-line;
     color: var(--text-color);
     cursor: default;
-}
-
-section p {
-    justify-content: center;
-    align-items: center;
+    align-content: center;
 }
 
 section ul {
@@ -221,7 +215,7 @@ nav {
     position: fixed;
     top: 0;
     width: 100%;
-    background-color: var(--nav-bg);
+    background-color: var(--text-color);
     z-index: 1000;
     height: 3.75rem;
     display: flex;
@@ -232,7 +226,6 @@ nav {
 
 nav ul {
     display: flex;
-    justify-content: center;
     list-style: none;
     margin: 0;
 }
@@ -242,7 +235,7 @@ nav ul li {
 }
 
 nav ul li a {
-    color: var(--nav-text);
+    color: var(--bg-color);
     font-size: 1rem;
     padding: 0.25rem 0.75rem;
 }
@@ -265,7 +258,7 @@ nav ul li a.active-link:hover {
 #toggle-theme {
     background: none;
     border: none;
-    color: var(--nav-text);
+    color: var(--bg-color);
     font-size: 0.813rem;
     cursor: pointer;
     padding: 0.5rem;
@@ -353,12 +346,11 @@ nav ul li a.active-link:hover {
     color: var(--bg-color);
     padding: 0.25rem 0.5rem;
     cursor: pointer;
-    opacity: 0.7;
     transition: opacity 0.3s ease;
 }
 
 .tab-button:hover {
-    opacity: 1;
+    text-decoration: underline;
 }
 
 .tab-button.tab-active {
