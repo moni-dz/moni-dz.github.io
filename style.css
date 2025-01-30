@@ -61,7 +61,7 @@ abbr {
 p {
     display: inline-block;
     margin-top: 0;
-    text-wrap: balance;
+    text-wrap: pretty;
 }
 
 a {
@@ -419,32 +419,34 @@ nav ul li a.active-link:hover {
 
 /* panel placements */
 #welcome {
-    top: 30%;
-    left: 25%;
+    top: calc(40vh - 5.688rem);
+    left: 25vw;
     max-width: 50rem;
     width: 100%;
 }
 
 #about {
-    top: 8%;
-    left: 5%;
+    top: calc(15vh - 5.688rem);
+    left: 1.5vw;
+    max-width: fit-content;
 }
 
 #projects {
-    top: 12%;
-    right: 5%;
+    top: calc(12vh - 5.688rem);
+    right: 1.5vw;
+    max-width: fit-content;
 }
 
 #skills {
-    bottom: 10%;
-    left: 8%;
-    max-width: 50rem;
+    top: calc(45vh - 5.688rem);
+    left: 5vw;
+    max-width: fit-content;
 }
 
-/* handle variable width content for refs */
 #refs {
-    bottom: 6%;
-    right: 3%;
+    top: calc(86vh - 5.688rem);
+    right: 2vw;
+    max-width: fit-content;
 }
 
 /* ref links */

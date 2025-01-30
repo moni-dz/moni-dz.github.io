@@ -26,13 +26,12 @@ function calculatePanelBounds(panel) {
     const panelRect = panel.getBoundingClientRect();
     const containerRect = state.containerDimensions.rect;
     const navHeight = state.containerDimensions.navHeight;
-    const borderWidth = parseInt(getComputedStyle(panel).borderWidth) || 2;
 
     return {
         minX: containerRect.left,
-        maxX: containerRect.right - panelRect.width - borderWidth,
+        maxX: containerRect.right - panelRect.width,
         minY: containerRect.top - navHeight,
-        maxY: containerRect.bottom - panelRect.height - navHeight - borderWidth
+        maxY: containerRect.bottom - panelRect.height - navHeight
     };
 }
 
