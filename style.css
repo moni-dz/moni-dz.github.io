@@ -110,6 +110,10 @@ a:hover {
     color: var(--bg-color);
 }
 
+abbr code {
+    text-decoration: inherit;
+}
+
 code,
 pre {
     display: inline-block;
