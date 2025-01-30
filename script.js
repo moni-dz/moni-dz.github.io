@@ -10,13 +10,41 @@ const state = {
     startY: 0,
     initialPanelX: 0,
     initialPanelY: 0,
+    lastZIndex: 0,
+    previewZIndex: 1000,
+    panelBounds: new Map(),
 };
+
+function initializePanelZIndices() {
+    const panels = [...document.querySelectorAll('.panel')].reverse();
+    let currentZ = 1;
+
+    panels.forEach(panel => { if (panel.id !== 'preview') panel.style.zIndex = currentZ++; });
+}
+
+function calculateAllPanelBounds() {
+    const panels = document.querySelectorAll('.panel');
+    state.panelBounds.clear();
+
+    panels.forEach(panel => {
+        if (panel.id !== 'preview') {
+            const panelRect = panel.getBoundingClientRect();
+            state.panelBounds.set(panel, {
+                minX: state.containerDimensions.rect.left,
+                minY: state.containerDimensions.rect.top - state.containerDimensions.navHeight,
+                maxX: state.containerDimensions.rect.right - panelRect.width,
+                maxY: state.containerDimensions.rect.bottom - panelRect.height - state.containerDimensions.navHeight
+            });
+        }
+    });
+}
 
 function calculateDimensions() {
     const updateDimensions = () => {
         const container = document.querySelector('.panels-container');
         state.containerDimensions.rect = container.getBoundingClientRect();
         state.containerDimensions.navHeight = document.querySelector('nav').offsetHeight;
+        calculateAllPanelBounds();
     }
 
     updateDimensions();
@@ -27,7 +55,7 @@ function calculateDimensions() {
     });
 }
 
-function focusPanel(panel, navId) {
+function focusPanel(panel) {
     if (state.isMobile) {
         const container = document.querySelector('.panels-container');
         const navHeight = document.querySelector('nav').offsetHeight;
@@ -40,12 +68,28 @@ function focusPanel(panel, navId) {
             behavior: 'smooth'
         });
     } else {
-        document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+        if (panel.classList.contains('active')) return;
+
+        const panels = document.querySelectorAll('.panel');
+        const currentZ = parseInt(panel.style.zIndex || 0);
+
+        if (panel.id !== 'preview') {
+            panels.forEach(p => {
+                if (p.id === 'preview') return;
+
+                const pZ = parseInt(p.style.zIndex || 0);
+                if (pZ > currentZ) p.style.zIndex = Math.max(1, pZ - 1);
+                p.classList.remove('active');
+            });
+
+            panel.style.zIndex = state.lastZIndex;
+        }
+
         panel.classList.add('active');
         state.activePanel = panel;
     }
 
-    updateNavLinks(navId);
+    if (panel.id && panel.id !== 'preview') updateNavLinks(panel.id);
 }
 
 function updateNavLinks(activeId) {
@@ -83,7 +127,7 @@ function handleRefClick(targetId, highlightElement) {
     const targetPanel = document.getElementById(targetId);
     if (!targetPanel) return;
 
-    focusPanel(targetPanel, targetId);
+    focusPanel(targetPanel);
 
     if (highlightElement) {
         highlightElement.classList.add('highlight');
@@ -109,7 +153,6 @@ function dragHandler() {
         const rect = panel.getBoundingClientRect();
         state.initialPanelX = rect.left;
         state.initialPanelY = rect.top;
-        state.activePanel.dragBounds = calculatePanelBounds(state.activePanel);
         state.activePanel.cachedWidth = rect.width;
         state.activePanel.cachedHeight = rect.height;
         panel.classList.add('dragging');
@@ -125,16 +168,20 @@ function dragHandler() {
     }
 
     const drag = (e) => {
-        if (!state.isDragging || !state.activePanel) return;
-        e.preventDefault();
+      if (!state.isDragging || !state.activePanel) return;
+      e.preventDefault();
 
-        requestAnimationFrame(() => {
-            const event = e.touches?.[0] ?? e;
-            const [dx, dy] = [event.clientX - state.startX, event.clientY - state.startY];
-            const [x, y] = [state.initialPanelX + dx, state.initialPanelY + dy - state.containerDimensions.navHeight];
+      requestAnimationFrame(() => {
+          const event = e.touches?.[0] ?? e;
+          const [dx, dy] = [event.clientX - state.startX, event.clientY - state.startY];
+          const [x, y] = [state.initialPanelX + dx, state.initialPanelY + dy - state.containerDimensions.navHeight];
 
-            updatePanelPosition(state.activePanel, x, y, state.activePanel.dragBounds);
-        });
+          // Use cached bounds from state
+          const bounds = state.panelBounds.get(state.activePanel);
+          if (bounds) {
+              updatePanelPosition(state.activePanel, x, y, bounds);
+          }
+      });
     }
 
     document.addEventListener('mousedown', startDragging);
@@ -195,6 +242,7 @@ function showPreview(url, source) {
 
     document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
     state.previewPanel.classList.add('active');
+    state.previewPanel.style.zIndex = state.previewZIndex;
 
     const destroyInactive = (e) => {
         const clickedPanel = e.target.closest('.panel');
@@ -203,7 +251,13 @@ function showPreview(url, source) {
             state.previewPanel.remove();
             state.previewPanel = null;
             document.removeEventListener('mousedown', destroyInactive);
-            if (state.sourcePanel) focusPanel(state.sourcePanel, state.sourcePanel.id);
+
+            if (state.sourcePanel) {
+                document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+                state.sourcePanel.classList.add('active');
+                state.activePanel = state.sourcePanel;
+                updateNavLinks(state.sourcePanel.id);
+            }
         }
     };
 
@@ -318,18 +372,17 @@ function setupDesktopView(elements) {
     elements.panels.forEach(panel => {
         panel.addEventListener('mousedown', (e) => {
             if (e.target.closest('.terminal-header')) return;
-            elements.panels.forEach(p => p.classList.remove('active'));
-            panel.classList.add('active');
-            state.activePanel = panel;
-            updateNavLinks(panel.id);
+            focusPanel(panel);
         });
     });
 }
 
 // Start the application when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-    loadTheme();
     calculateDimensions();
+    loadTheme();
+    state.lastZIndex = document.querySelectorAll('.panel').length;
+    initializePanelZIndices();
 
     const elements = {
         navLinks: document.querySelectorAll('nav a'),

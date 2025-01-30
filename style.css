@@ -79,6 +79,7 @@ h3 {
 p {
     display: inline-block;
     margin-top: 0;
+    text-wrap: balance;
 }
 
 a {
@@ -378,32 +379,27 @@ nav ul li a.active-link:hover {
     width: 60%;
     max-width: 56.25rem;
     transform: translate(-50%, -50%);
-    z-index: 5;
 }
 
 #about {
     top: 8%;
     left: 5%;
-    z-index: 1;
 }
 
 #projects {
     top: 12%;
     right: 5%;
-    z-index: 2;
 }
 
 #skills {
     bottom: 10%;
     left: 8%;
-    z-index: 3;
     max-width: 50rem;
 }
 
 #refs {
     bottom: 6%;
     right: 3%;
-    z-index: 4;
 }
 
 /* ref links */
