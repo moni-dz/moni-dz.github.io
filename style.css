@@ -433,6 +433,10 @@ nav ul li a.active-link:hover {
     opacity: 1;
 }
 
+.panel:not(.active):hover .terminal-window::after {
+    opacity: 0.7;
+}
+
 .terminal-content {
     min-height: 18.75rem;
 }
