@@ -217,10 +217,11 @@ function createPreviewPanel() {
     const panel = document.createElement('div');
     panel.className = 'panel';
     panel.id = 'preview';
+    panel.popover = 'auto';
     panel.innerHTML = `
     <div class="terminal-window">
       <header class="terminal-header">
-        <h4>web preview ${state.isMobile ? "(click title bar to dismiss)" : "(click outside to dismiss)"}</h4>
+        <h4>web preview ${state.isMobile ? "(tap outside to dismiss)" : "(press Esc to dismiss or click outside)"}</h4>
       </header>
       <section class="terminal-content">
         <div class="preview-container">
@@ -228,7 +229,7 @@ function createPreviewPanel() {
         </div>
       </section>
     </div>
-  `;
+    `;
     document.querySelector('.panels-container').appendChild(panel);
     return panel;
 }
@@ -243,14 +244,15 @@ function showPreview(url, source) {
     document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
     state.previewPanel.classList.add('active');
     state.previewPanel.style.zIndex = state.previewZIndex;
+    
+    // Show popover
+    state.previewPanel.showPopover();
 
-    const destroyInactive = (e) => {
-        const clickedPanel = e.target.closest('.panel');
-        if ((state.isMobile && clickedPanel === state.previewPanel) ||
-            (!state.isMobile && clickedPanel !== state.previewPanel)) {
+    // Handle popover hiding
+    state.previewPanel.addEventListener('beforetoggle', (e) => {
+        if (e.newState === 'closed') {
             state.previewPanel.remove();
             state.previewPanel = null;
-            document.removeEventListener('mousedown', destroyInactive);
 
             if (state.sourcePanel) {
                 document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
@@ -259,9 +261,7 @@ function showPreview(url, source) {
                 updateNavLinks(state.sourcePanel.id);
             }
         }
-    };
-
-    document.addEventListener('mousedown', destroyInactive);
+    }, { once: true });
 }
 
 // tab management

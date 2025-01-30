@@ -12,7 +12,7 @@
     --code-color: light-dark(oklch(64.98% 0.0915 253.74), oklch(72.04% 0.0912 253.56));
     --emphasis-color: light-dark(oklch(60.01% 0.1359 19.2), oklch(72.64% 0.1015 17.52));
     --abbr-color: light-dark(oklch(64.95% 0.0678 207.03), oklch(71.95% 0.0684 206.76));
-    --dither-opacity: 0.2;
+    --bg-opacity: 0.2;
 }
 
 * {
@@ -296,7 +296,7 @@ nav ul li a.active-link:hover {
     position: absolute;
     inset: 0;
     background-color: var(--bg-color);
-    opacity: calc(1 - var(--dither-opacity));
+    opacity: calc(1 - var(--bg-opacity));
     z-index: -1;
     pointer-events: none;
 }
@@ -492,11 +492,15 @@ sup.highlight {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    z-index: 1000;
     width: 90%;
     max-width: 75rem;
     height: 80vh;
     background: var(--bg-color);
+
+    &::backdrop {
+        background-color: var(--shadow-color);
+        backdrop-filter: blur(0.1875rem);
+    }
 }
 
 #preview .terminal-window {
@@ -625,9 +629,18 @@ sup.highlight {
 
     .panels-container {
         margin-top: 5.688rem;
-        height: calc(100vh - 5.688rem);
+        min-height: calc(100vh - 5.688rem);
+        height: auto;
         overflow-y: auto;
         padding: 1rem;
+        position: relative;
+    }
+
+    .panels-container::before {
+        position: fixed;
+        top: 5.688rem;
+        height: calc(100vh - 5.688rem);
+        width: 100%;
     }
 
     .panel,
@@ -693,6 +706,11 @@ sup.highlight {
         margin-top: 6rem;
         height: calc(100vh - 6rem);
         transform: none;
+
+        &::backdrop {
+            background-color: var(--shadow-color);
+            backdrop-filter: blur(0.125rem);
+        }
     }
 
     abbr[title]:hover::after,
