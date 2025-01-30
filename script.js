@@ -264,22 +264,6 @@ function showPreview(url, source) {
     document.addEventListener('mousedown', destroyInactive);
 }
 
-function loadTheme() {
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    if (!document.documentElement.hasAttribute('data-theme')) {
-        document.documentElement.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
-    }
-
-    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
-        document.documentElement.setAttribute('data-theme', e.matches ? 'dark' : 'light');
-    });
-}
-
-function toggleTheme() {
-    const currentTheme = document.documentElement.getAttribute('data-theme');
-    document.documentElement.setAttribute('data-theme', currentTheme === 'dark' ? 'light' : 'dark');
-}
-
 // tab management
 function tabHandler(tabButtons, tabs) {
     const defaultTab = tabButtons[0].dataset.tab;
@@ -426,7 +410,6 @@ function setupDesktopView(elements) {
 
 document.addEventListener('DOMContentLoaded', () => {
     calculateDimensions();
-    loadTheme();
     state.lastZIndex = document.querySelectorAll('.panel').length;
     initializePanelZIndices();
 
@@ -457,7 +440,13 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // toggle theme button
-    document.getElementById('toggle-theme')?.addEventListener('click', toggleTheme);
+    document.getElementById('toggle-theme')?.addEventListener('click', () => {
+        if (window.matchMedia('(prefers-color-scheme: dark)').matches && document.documentElement.style.colorScheme !== "light") {
+            document.documentElement.style.colorScheme = "light";
+        } else {
+            document.documentElement.style.colorScheme = "dark";
+        }
+    });
 
     refLinkHandler();
     tabHandler(elements.tabButtons, elements.tabs);
