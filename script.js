@@ -249,32 +249,39 @@ function tabHandler(tabButtons, tabs) {
 function swipeHandler() {
   if (!state.isMobile) return;
 
-  const tabContainer = document.querySelector('.terminal-tabs');
-  let touchStartX = 0;
-  let touchEndX = 0;
+  const panels = document.querySelectorAll('.panel');
+  panels.forEach(panel => {
+    const tabContainer = panel.querySelector('.terminal-tabs');
+    if (!tabContainer) return;
 
-  const handleSwipe = () => {
-    const swipeThreshold = 50;
-    const swipeDistance = touchEndX - touchStartX;
+    let touchStartX = 0;
+    let touchEndX = 0;
 
-    if (Math.abs(swipeDistance) < swipeThreshold) return;
+    const handleSwipe = () => {
+      const swipeThreshold = 50;
+      const swipeDistance = touchEndX - touchStartX;
 
-    const tabs = [...document.querySelectorAll('.tab-button')];
-    const activeTab = document.querySelector('.tab-button.active');
-    const currentIndex = tabs.indexOf(activeTab);
+      if (Math.abs(swipeDistance) < swipeThreshold) return;
 
-    const direction = swipeDistance > 0 ? -1 : 1;
-    const newIndex = (currentIndex + direction + tabs.length) % tabs.length;
+      const tabs = [...tabContainer.querySelectorAll('.tab-button')];
+      const activeTab = tabContainer.querySelector('.tab-button.tab-active');
+      const currentIndex = tabs.indexOf(activeTab);
 
-    tabs[newIndex].click();
-  }
+      const direction = swipeDistance > 0 ? -1 : 1;
+      const newIndex = (currentIndex + direction + tabs.length) % tabs.length;
 
-  tabContainer.addEventListener('touchstart', (e) => { touchStartX = e.touches[0].clientX; }, { passive: true });
+      tabs[newIndex].click();
+    };
 
-  tabContainer.addEventListener('touchend', (e) => {
-    touchEndX = e.changedTouches[0].clientX;
-    handleSwipe();
-  }, { passive: true });
+    tabContainer.addEventListener('touchstart', (e) => {
+      touchStartX = e.touches[0].clientX;
+    }, { passive: true });
+
+    tabContainer.addEventListener('touchend', (e) => {
+      touchEndX = e.changedTouches[0].clientX;
+      handleSwipe();
+    }, { passive: true });
+  });
 }
 
 // View initialization

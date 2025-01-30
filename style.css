@@ -134,12 +134,18 @@ section p {
 }
 
 section ul {
-    margin: 0rem 0rem -0.5rem 0.6rem;
+    margin: 0.5rem 0rem -1rem 0.6rem;
 }
 
 section ul li {
     position: relative;
+    list-style-type: "* ";
+    list-style-position: inside;
     margin-top: -1rem;
+}
+
+section ul * {
+    font-size: inherit;
 }
 
 aside {
@@ -528,13 +534,13 @@ sup.highlight {
         padding: 1rem 1.5rem 1.5rem 1.5rem;
     }
 
+    section ul {
+        font-size: 0.7rem;
+    }
+
     nav ul li a {
         font-size: 0.813rem;
         padding: 0.25rem 0.5rem;
-    }
-
-    section ul li * {
-        font-size: 0.7rem;
     }
 
     .tab-button {
