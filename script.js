@@ -15,13 +15,6 @@ const state = {
     panelBounds: new Map(),
 };
 
-function initializePanelZIndices() {
-    const panels = [...document.querySelectorAll('.panel')].reverse();
-    let currentZ = 1;
-
-    panels.forEach(panel => { if (panel.id !== 'preview') panel.style.zIndex = currentZ++; });
-}
-
 function calculatePanelBounds(panel) {
     const panelRect = panel.getBoundingClientRect();
     const containerRect = state.containerDimensions.rect;
@@ -416,7 +409,6 @@ function setupDesktopView(elements) {
 
 document.addEventListener('DOMContentLoaded', () => {
     state.lastZIndex = document.querySelectorAll('.panel').length;
-    initializePanelZIndices();
 
     const elements = {
         navLinks: document.querySelectorAll('nav a'),
