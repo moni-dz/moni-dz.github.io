@@ -280,7 +280,7 @@ function toggleTheme() {
     document.documentElement.setAttribute('data-theme', currentTheme === 'dark' ? 'light' : 'dark');
 }
 
-// Tab management
+// tab management
 function tabHandler(tabButtons, tabs) {
     const defaultTab = tabButtons[0].dataset.tab;
 
@@ -291,13 +291,32 @@ function tabHandler(tabButtons, tabs) {
 
         button.addEventListener('click', () => {
             const tabName = button.dataset.tab;
-
-            tabButtons.forEach(btn => btn.classList.remove('tab-active'));
-            button.classList.add('tab-active');
-
-            tabs.forEach(tab => { tab.classList.toggle('tab-active', tab.id.split('-')[1] === tabName); });
+            switchTab(tabButtons, tabs, tabName);
         });
     });
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+        
+        const activePanel = document.querySelector('.panel.active');
+        if (!activePanel) return;
+        
+        const activeTabButton = activePanel.querySelector('.tab-button.tab-active');
+        if (!activeTabButton) return;
+
+        const tabsList = [...activePanel.querySelectorAll('.tab-button')];
+        const currentIndex = tabsList.indexOf(activeTabButton);
+        const direction = e.key === 'ArrowLeft' ? -1 : 1;
+        const newIndex = (currentIndex + direction + tabsList.length) % tabsList.length;
+        
+        const newTab = tabsList[newIndex].dataset.tab;
+        switchTab(tabButtons, tabs, newTab);
+    });
+}
+
+function switchTab(tabButtons, tabs, tabName) {
+    tabButtons.forEach(btn => btn.classList.toggle('tab-active', btn.dataset.tab === tabName));
+    tabs.forEach(tab => tab.classList.toggle('tab-active', tab.id.split('-')[1] === tabName));
 }
 
 function swipeHandler() {
@@ -339,10 +358,24 @@ function swipeHandler() {
     });
 }
 
-// View initialization
+// view initialization
+function getMobileMessage(panelId) {
+    switch(panelId) {
+        case 'welcome':
+            return `on mobile you may scroll to focus the windows.
+            toggle the theme by clicking the button below the 'projects' link.`;
+        case 'about':
+            return `try clicking the tabs or swiping left or right on this window to switch between them.`;
+        default:
+            return '';
+    }
+}
+
 function setupMobileView(elements) {
-    elements.deviceMessage.textContent = `on mobile you may scroll to focus the windows.
-    toggle the theme by clicking the button below the 'projects' link.`;
+    elements.deviceMessages.forEach(message => {
+        const panelId = message.id.replace('-message', '');
+        message.textContent = getMobileMessage(panelId);
+    });
 
     const observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
@@ -364,10 +397,24 @@ function setupMobileView(elements) {
     });
 }
 
+function getDesktopMessage(panelId) {
+    switch(panelId) {
+        case 'welcome':
+            return `on desktop or tablets you may click or touch the windows to bring them into focus.
+            you may also drag the active window around by dragging it's title bar.
+            toggle the theme by clicking the button on the top right.`;
+        case 'about':
+            return `try clicking or using the arrow keys to switch between tabs.`;
+        default:
+            return '';
+    }
+}
+
 function setupDesktopView(elements) {
-    elements.deviceMessage.textContent = `on desktop or tablets you may click or touch the windows to bring them into focus.
-    you may also drag the active window around by dragging it's title bar.
-    toggle the theme by clicking the button on the top right.`;
+    elements.deviceMessages.forEach(message => {
+        const panelId = message.id.replace('-message', '');
+        message.textContent = getDesktopMessage(panelId);
+    });
 
     elements.panels.forEach(panel => {
         panel.addEventListener('mousedown', (e) => {
@@ -377,7 +424,6 @@ function setupDesktopView(elements) {
     });
 }
 
-// Start the application when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
     calculateDimensions();
     loadTheme();
@@ -387,9 +433,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const elements = {
         navLinks: document.querySelectorAll('nav a'),
         panels: document.querySelectorAll('.panel'),
-        deviceMessage: document.getElementById('device-specific-message'),
         tabButtons: document.querySelectorAll('.tab-button'),
-        tabs: document.querySelectorAll('.terminal-tab')
+        tabs: document.querySelectorAll('.terminal-tab'),
+        deviceMessages: document.querySelectorAll('.device-specific-message'),
     };
 
     // event listeners for nav links
