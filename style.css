@@ -281,6 +281,7 @@ nav ul li a.active-link:hover {
     height: calc(100vh - 3.75rem);
     overflow: hidden;
     padding: 1.25rem;
+    box-sizing: border-box;
 }
 
 /* panel container background */
@@ -301,6 +302,7 @@ nav ul li a.active-link:hover {
     transition: all 0.3s ease;
     transform: translate3d(0, 0, 0);
     will-change: transform;
+    height: auto;
 }
 
 .panel.dragging {
@@ -309,12 +311,14 @@ nav ul li a.active-link:hover {
 
 /* panel styling */
 .terminal-window {
-    border: 0.063rem solid var(--border-color);
+    border: 0.125rem solid var(--border-color);
     background-color: var(--bg-color);
     width: 100%;
     position: relative;
     transition: all 0.3s ease;
     user-select: none;
+    display: flex;
+    flex-direction: column;
 }
 
 .terminal-header {
@@ -327,17 +331,27 @@ nav ul li a.active-link:hover {
     cursor: default;
 }
 
-.terminal-tabs {
-    display: flex;
-    gap: 0.5rem;
+.terminal-content {
+    flex: 1;
+    padding: 1.25rem;
 }
 
 .terminal-tab {
     display: none;
+    height: 100%;
+    width: 100%;
 }
 
 .terminal-tab.tab-active {
-    display: block;
+    display: flex;
+    flex-direction: column;
+}
+
+/* children should use the full space, since terminal-tab is merely an organizational container */
+.terminal-tab > * {
+    flex: 1;
+    width: 100%;
+    height: 100%;
 }
 
 .tab-button {
@@ -359,10 +373,6 @@ nav ul li a.active-link:hover {
 }
 
 /* panel focus state */
-.active {
-    z-index: 10 !important;
-}
-
 .panel.active:not(#preview) .terminal-header {
     cursor: move;
 }
@@ -402,10 +412,6 @@ nav ul li a.active-link:hover {
     opacity: 0.7;
 }
 
-.terminal-content {
-    min-height: 18.75rem;
-}
-
 .active .terminal-window::after {
     opacity: 0;
     pointer-events: none;
@@ -413,11 +419,10 @@ nav ul li a.active-link:hover {
 
 /* panel placements */
 #welcome {
-    top: 50%;
-    left: 50%;
-    width: 60%;
-    max-width: 56.25rem;
-    transform: translate(-50%, -50%);
+    top: 30%;
+    left: 25%;
+    max-width: 50rem;
+    width: 100%;
 }
 
 #about {
@@ -436,6 +441,7 @@ nav ul li a.active-link:hover {
     max-width: 50rem;
 }
 
+/* handle variable width content for refs */
 #refs {
     bottom: 6%;
     right: 3%;
@@ -454,14 +460,8 @@ sup.highlight {
     border-radius: 0.125rem;
 }
 
-#refs {
-    sup {
-        margin-right: 0.5rem;
-    }
-
-    .terminal-content {
-        min-height: auto;
-    }
+#refs sup {
+    margin-right: 0.5rem;
 }
 
 /* links */
@@ -540,23 +540,15 @@ sup.highlight {
 
 /* desktop */
 @media (max-width: 75rem) {
-    .panel {
-        width: 45%;
-    }
-
-    .active {
-        width: 75% !important;
+    .panel.active {
+        width: 75%;
     }
 }
 
 /* tablets */
 @media (max-width: 48rem) {
-    .panel {
-        width: 80%;
-    }
-
-    .active {
-        width: 90% !important;
+    .panel.active {
+        width: 90%;
     }
 }
 

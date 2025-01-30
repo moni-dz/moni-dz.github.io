@@ -22,21 +22,18 @@ function initializePanelZIndices() {
     panels.forEach(panel => { if (panel.id !== 'preview') panel.style.zIndex = currentZ++; });
 }
 
-function calculateAllPanelBounds() {
-    const panels = document.querySelectorAll('.panel');
-    state.panelBounds.clear();
+function calculatePanelBounds(panel) {
+    const panelRect = panel.getBoundingClientRect();
+    const containerRect = state.containerDimensions.rect;
+    const navHeight = state.containerDimensions.navHeight;
+    const borderWidth = parseInt(getComputedStyle(panel).borderWidth) || 2;
 
-    panels.forEach(panel => {
-        if (panel.id !== 'preview') {
-            const panelRect = panel.getBoundingClientRect();
-            state.panelBounds.set(panel, {
-                minX: state.containerDimensions.rect.left,
-                minY: state.containerDimensions.rect.top - state.containerDimensions.navHeight,
-                maxX: state.containerDimensions.rect.right - panelRect.width,
-                maxY: state.containerDimensions.rect.bottom - panelRect.height - state.containerDimensions.navHeight
-            });
-        }
-    });
+    return {
+        minX: containerRect.left,
+        maxX: containerRect.right - panelRect.width - borderWidth,
+        minY: containerRect.top - navHeight,
+        maxY: containerRect.bottom - panelRect.height - navHeight - borderWidth
+    };
 }
 
 function calculateDimensions() {
@@ -44,7 +41,10 @@ function calculateDimensions() {
         const container = document.querySelector('.panels-container');
         state.containerDimensions.rect = container.getBoundingClientRect();
         state.containerDimensions.navHeight = document.querySelector('nav').offsetHeight;
-        calculateAllPanelBounds();
+        
+        const panels = document.querySelectorAll('.panel');
+        state.panelBounds.clear();
+        panels.forEach(panel => { if (panel.id !== 'preview') state.panelBounds.set(panel, calculatePanelBounds(panel)); });
     }
 
     updateDimensions();
@@ -147,14 +147,15 @@ function dragHandler() {
 
         state.isDragging = true;
         state.activePanel = panel;
-        state.startX = event.clientX;
-        state.startY = event.clientY;
 
-        const rect = panel.getBoundingClientRect();
-        state.initialPanelX = rect.left;
-        state.initialPanelY = rect.top;
-        state.activePanel.cachedWidth = rect.width;
-        state.activePanel.cachedHeight = rect.height;
+        const containerRect = state.containerDimensions.rect;
+        state.startX = event.clientX - containerRect.left;
+        state.startY = event.clientY - containerRect.top;
+
+        const panelRect = panel.getBoundingClientRect();
+        state.initialPanelX = panelRect.left - containerRect.left;
+        state.initialPanelY = panelRect.top - containerRect.top;
+
         panel.classList.add('dragging');
     }
 
@@ -168,20 +169,29 @@ function dragHandler() {
     }
 
     const drag = (e) => {
-      if (!state.isDragging || !state.activePanel) return;
-      e.preventDefault();
+        if (!state.isDragging || !state.activePanel) return;
+        e.preventDefault();
 
-      requestAnimationFrame(() => {
-          const event = e.touches?.[0] ?? e;
-          const [dx, dy] = [event.clientX - state.startX, event.clientY - state.startY];
-          const [x, y] = [state.initialPanelX + dx, state.initialPanelY + dy - state.containerDimensions.navHeight];
+        // smoother refresh-rate based movement with requestAnimationFrame
+        requestAnimationFrame(() => {
+            const event = e.touches?.[0] ?? e;
+            const containerRect = state.containerDimensions.rect;
 
-          // Use cached bounds from state
-          const bounds = state.panelBounds.get(state.activePanel);
-          if (bounds) {
-              updatePanelPosition(state.activePanel, x, y, bounds);
-          }
-      });
+            // relative to container
+            const currentX = event.clientX - containerRect.left;
+            const currentY = event.clientY - containerRect.top;
+
+            const dx = currentX - state.startX;
+            const dy = currentY - state.startY;
+
+            const x = state.initialPanelX + dx;
+            const y = state.initialPanelY + dy;
+
+            const bounds = state.panelBounds.get(state.activePanel);
+            if (bounds) {
+                updatePanelPosition(state.activePanel, x, y, bounds);
+            }
+        });
     }
 
     document.addEventListener('mousedown', startDragging);
@@ -194,19 +204,16 @@ function dragHandler() {
     document.addEventListener('touchcancel', stopDragging);
 }
 
-function calculatePanelBounds(panel) {
-    const panelRect = panel.getBoundingClientRect();
-    return {
-        minX: state.containerDimensions.rect.left,
-        minY: state.containerDimensions.rect.top - state.containerDimensions.navHeight,
-        maxX: state.containerDimensions.rect.right - panelRect.width,
-        maxY: state.containerDimensions.rect.bottom - panelRect.height - state.containerDimensions.navHeight
-    };
-}
-
 function updatePanelPosition(panel, x, y, bounds) {
     const boundedX = Math.max(bounds.minX, Math.min(bounds.maxX, x));
     const boundedY = Math.max(bounds.minY, Math.min(bounds.maxY, y));
+
+    const terminalWindow = panel.querySelector('.terminal-window');
+    const terminalRect = terminalWindow.getBoundingClientRect();
+
+    panel.style.width = `${terminalRect.width}px`;
+    panel.style.height = `${terminalRect.height}px`;
+
     panel.style.transform = `translate(${boundedX}px, ${boundedY}px)`;
     panel.style.position = 'absolute';
     panel.style.left = '0';
@@ -244,7 +251,7 @@ function showPreview(url, source) {
     document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
     state.previewPanel.classList.add('active');
     state.previewPanel.style.zIndex = state.previewZIndex;
-    
+
     // Show popover
     state.previewPanel.showPopover();
 
@@ -281,10 +288,10 @@ function tabHandler(tabButtons, tabs) {
 
     document.addEventListener('keydown', (e) => {
         if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
-        
+
         const activePanel = document.querySelector('.panel.active');
         if (!activePanel) return;
-        
+
         const activeTabButton = activePanel.querySelector('.tab-button.tab-active');
         if (!activeTabButton) return;
 
@@ -292,7 +299,7 @@ function tabHandler(tabButtons, tabs) {
         const currentIndex = tabsList.indexOf(activeTabButton);
         const direction = e.key === 'ArrowLeft' ? -1 : 1;
         const newIndex = (currentIndex + direction + tabsList.length) % tabsList.length;
-        
+
         const newTab = tabsList[newIndex].dataset.tab;
         switchTab(tabButtons, tabs, newTab);
     });
@@ -344,7 +351,7 @@ function swipeHandler() {
 
 // view initialization
 function getMobileMessage(panelId) {
-    switch(panelId) {
+    switch (panelId) {
         case 'welcome':
             return `on mobile you may scroll to focus the windows.
             toggle the theme by clicking the button below the 'projects' link.`;
@@ -382,7 +389,7 @@ function setupMobileView(elements) {
 }
 
 function getDesktopMessage(panelId) {
-    switch(panelId) {
+    switch (panelId) {
         case 'welcome':
             return `on desktop or tablets you may click or touch the windows to bring them into focus.
             you may also drag the active window around by dragging it's title bar.
@@ -409,7 +416,6 @@ function setupDesktopView(elements) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    calculateDimensions();
     state.lastZIndex = document.querySelectorAll('.panel').length;
     initializePanelZIndices();
 
@@ -459,4 +465,7 @@ document.addEventListener('DOMContentLoaded', () => {
         dragHandler();
         focusPanel(document.getElementById('welcome'), 'welcome');
     }
+
+    // rects have their proper shape by then
+    calculateDimensions();
 });
