@@ -300,6 +300,14 @@ function tabHandler(tabButtons, tabs) {
 function switchTab(tabButtons, tabs, tabName) {
     tabButtons.forEach(btn => btn.classList.toggle('tab-active', btn.dataset.tab === tabName));
     tabs.forEach(tab => tab.classList.toggle('tab-active', tab.id.split('-')[1] === tabName));
+
+    const panel = tabButtons[0].closest('.panel');
+    if (!panel || panel.id === 'preview') return;
+
+    setTimeout(() => {
+        const bounds = calculatePanelBounds(panel);    
+        state.panelBounds.set(panel, bounds);
+    }, 1000);
 }
 
 function swipeHandler() {

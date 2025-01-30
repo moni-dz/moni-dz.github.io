@@ -54,13 +54,13 @@ body {
     text-wrap: pretty;
 }
 
-h2 {
-    font-size: 120%;
-    letter-spacing: -0.08rem;
+.terminal-header h2 {
+    font-size: 90%;
+    letter-spacing: -0.04rem;
 }
 
-h3 {
-    font-size: 115%;
+.terminal-content h3 {
+    font-size: 120%;
 }
 
 abbr {
@@ -350,8 +350,12 @@ nav ul li a.active-link:hover {
     align-items: center;
     background-color: var(--text-color);
     color: var(--bg-color);
-    padding: 0.5rem 1rem;
+    padding: 0.4rem 0.8rem;
     cursor: default;
+}
+
+.terminal-tabs {
+    margin: -0.4rem 0rem;
 }
 
 .terminal-content {
@@ -458,6 +462,11 @@ nav ul li a.active-link:hover {
     left: 1.5vw;
     max-width: fit-content;
     z-index: 3;
+
+    .terminal-content {
+        min-height: 20rem;
+        justify-content: space-between;
+    }
 }
 
 #projects {
