@@ -33,7 +33,7 @@ function calculateDimensions() {
         const container = document.querySelector('.panels-container');
         state.containerDimensions.rect = container.getBoundingClientRect();
         state.containerDimensions.navHeight = document.querySelector('nav').offsetHeight;
-        
+
         const panels = document.querySelectorAll('.panel');
         state.panelBounds.clear();
         panels.forEach(panel => { if (panel.id !== 'preview') state.panelBounds.set(panel, calculatePanelBounds(panel)); });
@@ -124,6 +124,7 @@ function handleRefClick(targetId, highlightElement) {
     if (highlightElement) {
         highlightElement.classList.add('highlight');
         setTimeout(() => highlightElement.classList.remove('highlight'), 2000);
+        if (state.isMobile) setTimeout(() => { highlightElement.scrollIntoView({ behavior: 'smooth', block: 'center'}); }, 100);
     }
 }
 
@@ -305,7 +306,7 @@ function switchTab(tabButtons, tabs, tabName) {
     if (!panel || panel.id === 'preview') return;
 
     setTimeout(() => {
-        const bounds = calculatePanelBounds(panel);    
+        const bounds = calculatePanelBounds(panel);
         state.panelBounds.set(panel, bounds);
     }, 1000);
 }
@@ -350,23 +351,29 @@ function swipeHandler() {
 }
 
 // view initialization
-function getMobileMessage(panelId) {
+function getMobileMessage(elementId) {
+    const [panelId, messageNum] = elementId.split('-message-');
+    
     switch (panelId) {
         case 'welcome':
             return `on mobile you may scroll to focus the windows.
             toggle the theme by clicking the button below the 'projects' link.`;
         case 'about':
-            return `try clicking the tabs or swiping left or right on this window to switch between them.`;
+            switch (messageNum) {
+                case '1':
+                    return `try clicking the tabs or swiping left or right on this window to switch between them.`;
+                case '2':
+                    return `touch the image...`;
+                default:
+                    return '';
+            }
         default:
             return '';
     }
 }
 
 function setupMobileView(elements) {
-    elements.deviceMessages.forEach(message => {
-        const panelId = message.id.replace('-message', '');
-        message.textContent = getMobileMessage(panelId);
-    });
+    elements.deviceMessages.forEach(message => { message.textContent = getMobileMessage(message.id); });
 
     const observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
@@ -386,26 +393,113 @@ function setupMobileView(elements) {
     elements.panels.forEach(panel => {
         if (panel.id !== 'preview') observer.observe(panel);
     });
+
+    // handle tooltips
+    document.querySelectorAll("abbr[title]").forEach((abbr) => {
+        let tooltip = null;
+        let dismissTimeout = null;
+
+        const dismissTooltip = () => {
+            if (tooltip) {
+                clearTimeout(dismissTimeout);
+                tooltip.remove();
+                tooltip = null;
+            }
+        };
+
+        const showTooltip = (e) => {
+            e.preventDefault();
+
+            dismissTooltip();
+
+            tooltip = document.createElement("div");
+            tooltip.textContent = abbr.getAttribute("title");
+            document.body.appendChild(tooltip);
+
+            tooltip.style.position = "absolute";
+            tooltip.style.maxWidth = "min(16rem, 80vw)";
+            tooltip.style.whiteSpace = "normal";
+            tooltip.style.overflowWrap = "break-word";
+            tooltip.style.zIndex = "100";
+            tooltip.style.backgroundColor = "var(--text-color)";
+            tooltip.style.color = "var(--bg-color)";
+            tooltip.style.borderRadius = "0.25rem";
+            tooltip.style.boxShadow = "0.0625rem 0.0625rem 0.3125rem 0rem var(--shadow-color)";
+            tooltip.style.fontSize = "0.75rem";
+            tooltip.style.padding = "0.125rem 0.25rem";
+            tooltip.style.opacity = "0";
+            tooltip.style.transition = "opacity 0.2s ease-in-out";
+            tooltip.style.pointerEvents = "none";
+            tooltip.style.transform = 'translateX(0)';
+
+            const rect = abbr.getBoundingClientRect();
+            const tooltipRect = tooltip.getBoundingClientRect();
+            const viewportPadding = 8;
+            const touchX = e.touches[0].clientX;
+            const viewportCenter = window.innerWidth / 2;
+
+            let left = rect.left + (rect.width - tooltipRect.width) / 2;
+            left = Math.max(viewportPadding, Math.min(left, window.innerWidth - tooltipRect.width - viewportPadding));
+            
+            if (touchX < viewportCenter) {
+                // align tooltip to left side
+                left = Math.max(viewportPadding, rect.left + window.scrollX);
+            } else {
+                // align tooltip to right side
+                left = Math.min(
+                    window.innerWidth - tooltipRect.width - viewportPadding,
+                    rect.right + window.scrollX - tooltipRect.width
+                );
+            }
+        
+            let top = rect.top + window.scrollY - tooltipRect.height - 8;
+            // show below if not enough space
+            if (top < window.scrollY + viewportPadding) top = rect.bottom + window.scrollY + 8;
+            
+            tooltip.style.left = `${left}px`;
+            tooltip.style.top = `${top}px`;
+            tooltip.style.opacity = "1";
+
+            dismissTimeout = setTimeout(dismissTooltip, 3000);
+
+            const handleTouchOutside = (e) => {
+                if (!abbr.contains(e.target)) {
+                    dismissTooltip();
+                    document.removeEventListener("touchstart", handleTouchOutside);
+                }
+            };
+    
+            document.addEventListener("touchstart", handleTouchOutside);
+        }
+
+        abbr.addEventListener("touchstart", showTooltip);
+    });
 }
 
-function getDesktopMessage(panelId) {
+function getDesktopMessage(elementId) {
+    const [panelId, messageNum] = elementId.split('-message-');
+    
     switch (panelId) {
         case 'welcome':
             return `on desktop or tablets you may click or touch the windows to bring them into focus.
             you may also drag the active window around by dragging it's title bar.
             toggle the theme by clicking the button on the top right.`;
         case 'about':
-            return `try clicking or using the arrow keys to switch between tabs.`;
+            switch (messageNum) {
+                case '1':
+                    return `try clicking or using the arrow keys to switch between tabs.`;
+                case '2':
+                    return `hover the image...`;
+                default:
+                    return '';
+            }
         default:
             return '';
     }
 }
 
 function setupDesktopView(elements) {
-    elements.deviceMessages.forEach(message => {
-        const panelId = message.id.replace('-message', '');
-        message.textContent = getDesktopMessage(panelId);
-    });
+    elements.deviceMessages.forEach(message => { message.textContent = getDesktopMessage(message.id); });
 
     elements.panels.forEach(panel => {
         panel.addEventListener('mousedown', (e) => {
@@ -432,7 +526,20 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
             const targetId = e.target.dataset.panel;
             const targetPanel = document.getElementById(targetId);
-            if (targetPanel) focusPanel(targetPanel, targetId);
+            if (targetPanel) {
+                if (state.isMobile) {
+                    const navHeight = document.querySelector('nav').offsetHeight;
+                    window.scrollTo({
+                        top: targetPanel.offsetTop - navHeight / 2,
+                        behavior: 'smooth'
+                    });
+                    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+                    targetPanel.classList.add('active');
+                    updateNavLinks(targetId);
+                } else {
+                    focusPanel(targetPanel);
+                }
+            }
         });
     });
 
@@ -446,10 +553,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // toggle theme button
     document.getElementById('toggle-theme')?.addEventListener('click', () => {
-        if (window.matchMedia('(prefers-color-scheme: dark)').matches && document.documentElement.style.colorScheme !== "light") {
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const prefersLight = window.matchMedia('(prefers-color-scheme: light)').matches;
+
+        if (prefersDark && document.documentElement.style.colorScheme !== "light") {
             document.documentElement.style.colorScheme = "light";
-        } else {
+        } else if (prefersLight && document.documentElement.style.colorScheme !== "dark") {
             document.documentElement.style.colorScheme = "dark";
+        } else if (document.documentElement.style.colorScheme === "light") {
+            document.documentElement.style.colorScheme = "dark";
+        } else {
+            document.documentElement.style.colorScheme = "light";
         }
     });
 
