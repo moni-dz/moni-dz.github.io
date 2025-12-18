@@ -1,0 +1,772 @@
+---
+import Navigation from "../components/Navigation.tsx";
+import Layout from "../layouts/Layout.astro";
+import PanelsContainer from "../components/PanelsContainer.astro";
+import Panel from "../components/Panel.astro";
+import TabPanel from "../components/TabPanel.astro";
+import PanelContent from "../components/PanelContent.astro";
+---
+
+<Layout title="my portfolio">
+  <Navigation client:load isBlogPage={false} />
+  <PanelsContainer>
+    <Panel id="welcome" title="home.txt">
+      <PanelContent>
+        <h3>welcome!</h3>
+        <p>
+          start by navigating to the other windows using the links above.
+          <span class="device-specific-message" id="welcome-message-1"></span>
+          this site is best viewed in a modern up-to-date browser as it uses <a
+            href="https://web.dev/baseline">baseline</a
+          >
+          <a href="https://web.dev/baseline/2023">2023</a> and <a
+            href="https://web.dev/baseline/2024">2024</a
+          > features such as <code
+            ><a
+              href="https://developer.mozilla.org/en-US/docs/Web/CSS/color_value/oklch"
+              >oklch()</a
+            ><sup id="ref-1">1</sup></code
+          >, <code
+            ><a
+              href="https://developer.mozilla.org/en-US/docs/Web/CSS/color_value/light-dark"
+              >light-dark()</a
+            ></code
+          >, <code
+            ><a
+              href="https://developer.mozilla.org/en-US/docs/Web/API/DedicatedWorkerGlobalScope/requestAnimationFrame"
+              >requestAnimationFrame()</a
+            ></code
+          >, and the <a href="https://web.dev/blog/popover-api">Popover API</a
+          >.
+        </p>
+      </PanelContent>
+    </Panel>
+
+    <TabPanel
+      id="about"
+      title="about.txt"
+      tabs={[
+        { name: "site", label: "site" },
+        { name: "author", label: "author" },
+      ]}
+    >
+      <PanelContent name="about-site">
+        <h3>
+          I created the site to look and feel like an old text-based
+          windowing system<sup id="ref-2">2</sup>.
+        </h3>
+        <p>
+          the experience is akin to <abbr title="Single-page applications"
+            >SPA</abbr
+          >s commonly seen in modern web development with frameworks like
+          React. while web programming is <strong>not my main focus</strong
+          >, this site aims to showcase my progress in the course.
+          <span class="device-specific-message" id="about-message-1"></span>
+        </p>
+      </PanelContent>
+      <PanelContent name="about-author">
+        <div id="about-container">
+          <aside id="about-icon-container">
+            <img id="about-icon" src="assets/icon.webp" alt="myself" />
+            <strong
+              ><span class="device-specific-message" id="about-message-2"
+              ></span></strong
+            >
+            <abbr title="you should hover every element like me."
+              >also hover me...</abbr
+            >
+          </aside>
+          <div id="about-text">
+            <h3>
+              hi my name is: <abbr title="Lythe Marvin L. Lacre">lyt</abbr>
+            </h3>
+            <p>
+              I am a Computer Science student at<br />Mapúa Malayan Colleges
+              Mindanao. some important links: <a
+                href="https://github.com/moni-dz">GitHub</a
+              >
+              <details>
+                <summary>&nbsp;some details about me</summary><ul>
+                  <li>
+                    prefers to stay out off <abbr
+                      title="there are far better people than me!"
+                      >frontend</abbr
+                    >
+                  </li>
+                  <li>
+                    <strong>really</strong> likes <abbr
+                      title="I enjoy performance optimizations"
+                      >backend</abbr
+                    > work
+                  </li>
+                  <li>
+                    <abbr
+                      title="concepts are easily transferrable, unless they enforce certain design patterns..."
+                      >knows</abbr
+                    >
+                    <abbr
+                      title='I know the "ancient" ones like C, Java, etc...'
+                      >some</abbr
+                    >
+                    <abbr title='Rust and Zig are my "modern" favorites'
+                      >programming</abbr
+                    >
+                    <abbr
+                      title="statically-typed and strong type systems preferred! (python and typescript are tolerated)"
+                      >languages</abbr>
+                  </li>
+                  <li>applied > theoretical (in everything!)</li>
+                </ul>
+              </details>
+            </p>
+          </div>
+        </div>
+      </PanelContent>
+    </TabPanel>
+
+    <Panel id="refs" title="refs.txt">
+      <PanelContent>
+        <p>
+          <sup id="back-ref-1">1</sup><a
+            href="https://evilmartians.com/chronicles/oklch-in-css-why-quit-rgb-hsl"
+            >OKLCH in CSS: why we moved from RGB and HSL</a>
+        </p>
+        <p>
+          <sup id="back-ref-2">2</sup><a
+            href="https://urbanjost.github.io/M_ncurses/images/example.gif"
+            data-preview="true">ncurses (click to preview)</a>
+        </p>
+      </PanelContent>
+    </Panel>
+  </PanelsContainer>
+
+  <script>
+    // Panel management
+    interface ContainerDimensions {
+      rect: DOMRect | null;
+      navHeight: number;
+    }
+
+    interface PanelBounds {
+      minX: number;
+      maxX: number;
+      minY: number;
+      maxY: number;
+    }
+
+    interface State {
+      isMobile: boolean;
+      containerDimensions: ContainerDimensions;
+      resizeTimeout: ReturnType<typeof setTimeout> | null;
+      isDragging: boolean;
+      activePanel: HTMLElement | null;
+      previewPanel: HTMLElement | null;
+      sourcePanel: HTMLElement | null;
+      startX: number;
+      startY: number;
+      initialPanelX: number;
+      initialPanelY: number;
+      lastZIndex: number;
+      previewZIndex: number;
+      panelBounds: Map<HTMLElement, PanelBounds>;
+    }
+
+    const state: State = {
+      isMobile: window.innerWidth <= 500,
+      containerDimensions: { rect: null, navHeight: 0 },
+      resizeTimeout: null,
+      isDragging: false,
+      activePanel: null,
+      previewPanel: null,
+      sourcePanel: null,
+      startX: 0,
+      startY: 0,
+      initialPanelX: 0,
+      initialPanelY: 0,
+      lastZIndex: 0,
+      previewZIndex: 1000,
+      panelBounds: new Map(),
+    };
+
+    function calculatePanelBounds(panel: HTMLElement): PanelBounds {
+      const panelRect = panel.getBoundingClientRect();
+      const containerRect = state.containerDimensions.rect;
+      const navHeight = state.containerDimensions.navHeight;
+
+      if (!containerRect) {
+        return { minX: 0, maxX: 0, minY: 0, maxY: 0 };
+      }
+
+      return {
+        minX: containerRect.left,
+        maxX: containerRect.right - panelRect.width,
+        minY: containerRect.top - navHeight,
+        maxY: containerRect.bottom - panelRect.height - navHeight,
+      };
+    }
+
+    function calculateDimensions(): void {
+      const updateDimensions = (): void => {
+        const container = document.querySelector(
+          ".panels-container",
+        ) as HTMLElement | null;
+        const nav = document.querySelector("nav") as HTMLElement | null;
+
+        if (!container || !nav) return;
+
+        state.containerDimensions.rect = container.getBoundingClientRect();
+        state.containerDimensions.navHeight = nav.offsetHeight;
+
+        const panels = document.querySelectorAll(
+          ".panel",
+        ) as NodeListOf<HTMLElement>;
+        state.panelBounds.clear();
+        panels.forEach((panel) => {
+          if (panel.id !== "preview") {
+            state.panelBounds.set(panel, calculatePanelBounds(panel));
+          }
+        });
+      };
+
+      updateDimensions();
+
+      window.addEventListener("resize", () => {
+        if (state.resizeTimeout !== null) {
+          clearTimeout(state.resizeTimeout);
+        }
+        state.resizeTimeout = setTimeout(updateDimensions, 100);
+      });
+    }
+
+    function focusPanel(panel: HTMLElement): void {
+      if (state.isMobile) {
+        const container = document.querySelector(
+          ".panels-container",
+        ) as HTMLElement | null;
+        const nav = document.querySelector("nav") as HTMLElement | null;
+
+        if (!container || !nav) return;
+
+        const panels = document.querySelectorAll(
+          ".panel",
+        ) as NodeListOf<HTMLElement>;
+        panels.forEach((p) => p.classList.remove("active"));
+        panel.classList.add("active");
+
+        container.scrollTo({
+          top: panel.offsetTop - nav.offsetHeight / 2,
+          behavior: "smooth",
+        });
+      } else {
+        if (panel.classList.contains("active")) return;
+
+        const panels = document.querySelectorAll(
+          ".panel",
+        ) as NodeListOf<HTMLElement>;
+        const currentZ = parseInt(panel.style.zIndex || "0", 10);
+
+        if (panel.id !== "preview") {
+          panels.forEach((p) => {
+            if (p.id === "preview") return;
+            p.classList.remove("active");
+            const pZ = parseInt(p.style.zIndex || "0", 10);
+            if (pZ > 0) p.style.zIndex = String(Math.max(1, pZ - 1));
+          });
+
+          state.lastZIndex++;
+          panel.style.zIndex = String(state.lastZIndex);
+        }
+
+        panel.classList.add("active");
+        state.activePanel = panel;
+      }
+
+      if (panel.id && panel.id !== "preview") updateNavLinks(panel.id);
+    }
+
+    function updateNavLinks(activeId: string): void {
+      const links = document.querySelectorAll(
+        "nav a",
+      ) as NodeListOf<HTMLAnchorElement>;
+      links.forEach((link) => {
+        link.classList.toggle("active-link", link.dataset.panel === activeId);
+      });
+    }
+
+    function dragHandler(): void {
+      if (state.isMobile) return;
+
+      const startDragging = (e: MouseEvent | TouchEvent): void => {
+        const event = e instanceof TouchEvent ? e.touches?.[0] : e;
+        if (!event) return;
+
+        const target = event.target as HTMLElement | null;
+        if (!target) return;
+
+        const panel = target.closest(".panel") as HTMLElement | null;
+        const header = target.closest(".panel-header") as HTMLElement | null;
+
+        if (
+          !panel ||
+          !panel.classList.contains("active") ||
+          !header ||
+          panel.id === "preview"
+        )
+          return;
+
+        state.isDragging = true;
+        state.activePanel = panel;
+
+        const containerRect = state.containerDimensions.rect;
+        if (!containerRect) return;
+
+        state.startX = event.clientX - containerRect.left;
+        state.startY = event.clientY - containerRect.top;
+
+        const panelRect = panel.getBoundingClientRect();
+        state.initialPanelX = panelRect.left - containerRect.left;
+        state.initialPanelY = panelRect.top - containerRect.top;
+
+        // Set fixed dimensions and absolute positioning to prevent reflow during drag
+        panel.style.width = `${panelRect.width}px`;
+        panel.style.height = `${panelRect.height}px`;
+        panel.style.position = "absolute";
+        panel.style.left = "0";
+        panel.style.top = "0";
+        panel.style.transform = `translate(${state.initialPanelX}px, ${state.initialPanelY}px)`;
+
+        panel.classList.add("dragging");
+      };
+
+      const stopDragging = (): void => {
+        if (!state.isDragging) return;
+        state.isDragging = false;
+        if (state.activePanel) {
+          state.activePanel.classList.remove("dragging");
+        }
+      };
+
+      const drag = (e: MouseEvent | TouchEvent): void => {
+        if (!state.isDragging || !state.activePanel) return;
+        e.preventDefault();
+
+        requestAnimationFrame(() => {
+          const event =
+            e instanceof TouchEvent ? e.touches?.[0] : (e as MouseEvent);
+          if (!event) return;
+
+          const containerRect = state.containerDimensions.rect;
+          if (!containerRect) return;
+
+          const currentX = event.clientX - containerRect.left;
+          const currentY = event.clientY - containerRect.top;
+
+          const dx = currentX - state.startX;
+          const dy = currentY - state.startY;
+
+          const x = state.initialPanelX + dx;
+          const y = state.initialPanelY + dy;
+
+          const bounds = state.activePanel
+            ? state.panelBounds.get(state.activePanel)
+            : undefined;
+          if (bounds && state.activePanel) {
+            updatePanelPosition(state.activePanel, x, y, bounds);
+          }
+        });
+      };
+
+      document.addEventListener("mousedown", startDragging);
+      document.addEventListener("mousemove", drag);
+      document.addEventListener("mouseup", stopDragging);
+      document.addEventListener("mouseleave", stopDragging);
+      document.addEventListener("touchstart", startDragging, {
+        passive: false,
+      });
+      document.addEventListener("touchmove", drag, { passive: false });
+      document.addEventListener("touchend", stopDragging);
+      document.addEventListener("touchcancel", stopDragging);
+    }
+
+    function updatePanelPosition(
+      panel: HTMLElement,
+      x: number,
+      y: number,
+      bounds: PanelBounds,
+    ): void {
+      const boundedX = Math.max(bounds.minX, Math.min(bounds.maxX, x));
+      const boundedY = Math.max(bounds.minY, Math.min(bounds.maxY, y));
+
+      panel.style.transform = `translate(${boundedX}px, ${boundedY}px)`;
+    }
+
+    function tabHandler(): void {
+      const tabButtons = document.querySelectorAll(
+        ".tab-button",
+      ) as NodeListOf<HTMLButtonElement>;
+      const panels = document.querySelectorAll(
+        ".panel",
+      ) as NodeListOf<HTMLElement>;
+
+      // Initialize: hide all tabs except active ones
+      panels.forEach((panel) => {
+        const panelTabButtons = panel.querySelectorAll(
+          ".tab-button",
+        ) as NodeListOf<HTMLButtonElement>;
+        const panelTabs = panel.querySelectorAll(
+          ".panel-tab",
+        ) as NodeListOf<HTMLElement>;
+
+        if (panelTabButtons.length > 0) {
+          const activeButton = panel.querySelector(
+            ".tab-button.tab-active",
+          ) as HTMLButtonElement | null;
+          const activeTabName =
+            activeButton?.dataset.tab ?? panelTabButtons[0]?.dataset.tab;
+
+          panelTabs.forEach((tab) => {
+            tab.classList.toggle(
+              "tab-active",
+              tab.id.split("-")[1] === activeTabName,
+            );
+          });
+        }
+      });
+
+      tabButtons.forEach((button) => {
+        button.addEventListener("click", () => {
+          const tabName = button.dataset.tab;
+          const panel = button.closest(".panel") as HTMLElement | null;
+          if (!panel) return;
+
+          const panelTabButtons = panel.querySelectorAll(
+            ".tab-button",
+          ) as NodeListOf<HTMLButtonElement>;
+          const panelTabs = panel.querySelectorAll(
+            ".panel-tab",
+          ) as NodeListOf<HTMLElement>;
+
+          panelTabButtons.forEach((btn) =>
+            btn.classList.toggle("tab-active", btn.dataset.tab === tabName),
+          );
+          panelTabs.forEach((tab) =>
+            tab.classList.toggle(
+              "tab-active",
+              tab.id.split("-")[1] === tabName,
+            ),
+          );
+
+          if (panel.id !== "preview") {
+            setTimeout(() => {
+              const bounds = calculatePanelBounds(panel);
+              state.panelBounds.set(panel, bounds);
+            }, 1000);
+          }
+        });
+      });
+
+      document.addEventListener("keydown", (e: KeyboardEvent) => {
+        if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+
+        const activePanel = document.querySelector(
+          ".panel.active",
+        ) as HTMLElement | null;
+        if (!activePanel) return;
+
+        const activeTabButton = activePanel.querySelector(
+          ".tab-button.tab-active",
+        ) as HTMLButtonElement | null;
+        if (!activeTabButton) return;
+
+        const tabsList = [
+          ...activePanel.querySelectorAll(".tab-button"),
+        ] as HTMLButtonElement[];
+        const currentIndex = tabsList.indexOf(activeTabButton);
+        const direction = e.key === "ArrowLeft" ? -1 : 1;
+        const newIndex =
+          (currentIndex + direction + tabsList.length) % tabsList.length;
+
+        tabsList[newIndex]?.click();
+      });
+    }
+
+    function getMobileMessage(elementId: string): string {
+      const [panelId, messageNum] = elementId.split("-message-");
+
+      switch (panelId) {
+        case "welcome":
+          return `on mobile you may scroll to focus the windows.
+toggle the theme by clicking the button below the 'projects' link.`;
+        case "about":
+          switch (messageNum) {
+            case "1":
+              return `try clicking the tabs or swiping left or right on this window to switch between them.`;
+            case "2":
+              return `touch the image...`;
+            default:
+              return "";
+          }
+        default:
+          return "";
+      }
+    }
+
+    function getDesktopMessage(elementId: string): string {
+      const [panelId, messageNum] = elementId.split("-message-");
+
+      switch (panelId) {
+        case "welcome":
+          return `on desktop or tablets you may click or touch the windows to bring them into focus.
+you may also drag the active window around by dragging it's title bar.
+toggle the theme by clicking the button on the top right.`;
+        case "about":
+          switch (messageNum) {
+            case "1":
+              return `try clicking or using the arrow keys to switch between tabs.`;
+            case "2":
+              return `hover the image...`;
+            default:
+              return "";
+          }
+        default:
+          return "";
+      }
+    }
+
+    function setupMobileView(): void {
+      const messageElements = document.querySelectorAll(
+        ".device-specific-message",
+      ) as NodeListOf<HTMLElement>;
+      messageElements.forEach((message) => {
+        message.textContent = getMobileMessage(message.id);
+      });
+
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            const target = entry.target as HTMLElement;
+            if (target.id === "preview") return;
+            if (entry.isIntersecting && entry.intersectionRatio >= 0.93) {
+              const panels = document.querySelectorAll(
+                ".panel",
+              ) as NodeListOf<HTMLElement>;
+              panels.forEach((p) => p.classList.remove("active"));
+              target.classList.add("active");
+              updateNavLinks(target.id);
+            }
+          });
+        },
+        {
+          threshold: [0.93],
+          rootMargin: "-5% 0px",
+        },
+      );
+
+      const panels = document.querySelectorAll(
+        ".panel",
+      ) as NodeListOf<HTMLElement>;
+      panels.forEach((panel) => {
+        if (panel.id !== "preview") observer.observe(panel);
+      });
+
+      // handle tooltips
+      const abbrElements = document.querySelectorAll(
+        "abbr[title]",
+      ) as NodeListOf<HTMLElement>;
+      abbrElements.forEach((abbr) => {
+        let tooltip: HTMLElement | null = null;
+        let dismissTimeout: ReturnType<typeof setTimeout> | null = null;
+
+        const dismissTooltip = (): void => {
+          if (tooltip) {
+            if (dismissTimeout !== null) {
+              clearTimeout(dismissTimeout);
+            }
+            tooltip.remove();
+            tooltip = null;
+          }
+        };
+
+        const showTooltip = (e: TouchEvent): void => {
+          e.preventDefault();
+
+          dismissTooltip();
+
+          tooltip = document.createElement("div");
+          const title = abbr.getAttribute("title");
+          if (title) {
+            tooltip.textContent = title;
+          }
+          document.body.appendChild(tooltip);
+
+          tooltip.style.position = "absolute";
+          tooltip.style.maxWidth = "min(16rem, 80vw)";
+          tooltip.style.whiteSpace = "normal";
+          tooltip.style.overflowWrap = "break-word";
+          tooltip.style.zIndex = "100";
+          tooltip.style.backgroundColor = "var(--text-color)";
+          tooltip.style.color = "var(--bg-color)";
+          tooltip.style.borderRadius = "0.25rem";
+          tooltip.style.boxShadow =
+            "0.0625rem 0.0625rem 0.3125rem 0rem var(--shadow-color)";
+          tooltip.style.fontSize = "0.75rem";
+          tooltip.style.padding = "0.125rem 0.25rem";
+          tooltip.style.opacity = "0";
+          tooltip.style.transition = "opacity 0.2s ease-in-out";
+          tooltip.style.pointerEvents = "none";
+          tooltip.style.transform = "translateX(0)";
+
+          const rect = abbr.getBoundingClientRect();
+          const tooltipRect = tooltip.getBoundingClientRect();
+          const viewportPadding = 8;
+          const touchEvent = e.touches?.[0];
+          if (!touchEvent) return;
+
+          const touchX = touchEvent.clientX;
+          const viewportCenter = window.innerWidth / 2;
+
+          let left = rect.left + (rect.width - tooltipRect.width) / 2;
+          left = Math.max(
+            viewportPadding,
+            Math.min(
+              left,
+              window.innerWidth - tooltipRect.width - viewportPadding,
+            ),
+          );
+
+          if (touchX < viewportCenter) {
+            left = Math.max(viewportPadding, rect.left + window.scrollX);
+          } else {
+            left = Math.min(
+              window.innerWidth - tooltipRect.width - viewportPadding,
+              rect.right + window.scrollX - tooltipRect.width,
+            );
+          }
+
+          let top = rect.top + window.scrollY - tooltipRect.height - 8;
+          if (top < window.scrollY + viewportPadding)
+            top = rect.bottom + window.scrollY + 8;
+
+          tooltip.style.left = `${left}px`;
+          tooltip.style.top = `${top}px`;
+          tooltip.style.opacity = "1";
+
+          dismissTimeout = setTimeout(dismissTooltip, 3000);
+
+          const handleTouchOutside = (e: TouchEvent): void => {
+            const target = e.target as Node;
+            if (!abbr.contains(target)) {
+              dismissTooltip();
+              document.removeEventListener("touchstart", handleTouchOutside);
+            }
+          };
+
+          document.addEventListener("touchstart", handleTouchOutside);
+        };
+
+        abbr.addEventListener("touchstart", showTooltip as EventListener);
+      });
+    }
+
+    function setupDesktopView(): void {
+      const messageElements = document.querySelectorAll(
+        ".device-specific-message",
+      ) as NodeListOf<HTMLElement>;
+      messageElements.forEach((message) => {
+        message.textContent = getDesktopMessage(message.id);
+      });
+
+      const panels = document.querySelectorAll(
+        ".panel",
+      ) as NodeListOf<HTMLElement>;
+      panels.forEach((panel) => {
+        panel.addEventListener("mousedown", (e: MouseEvent) => {
+          const target = e.target as HTMLElement | null;
+          if (target?.closest(".panel-header")) return;
+          focusPanel(panel);
+        });
+      });
+    }
+
+    document.addEventListener("DOMContentLoaded", (): void => {
+      const panels = document.querySelectorAll(".panel") as NodeListOf<HTMLElement>;
+      state.lastZIndex = Math.max(1000, panels.length + 100);
+      
+      // Initialize all panels with explicit z-index
+      panels.forEach((panel, index) => {
+        if (panel.id !== "preview") {
+          panel.style.zIndex = String(panels.length - index);
+        }
+      });
+
+      // event listeners for nav links
+      const navLinks = document.querySelectorAll(
+        "nav a",
+      ) as NodeListOf<HTMLAnchorElement>;
+      navLinks.forEach((link) => {
+        link.addEventListener("click", (e: MouseEvent) => {
+          const target = e.target as HTMLAnchorElement;
+          // Allow external navigation
+          if (target.dataset.external === "true") {
+            return;
+          }
+          e.preventDefault();
+          const targetId = target.dataset.panel;
+          if (!targetId) return;
+
+          const targetPanel = document.getElementById(
+            targetId,
+          ) as HTMLElement | null;
+          if (targetPanel) {
+            if (state.isMobile) {
+              const nav = document.querySelector("nav") as HTMLElement | null;
+              if (!nav) return;
+
+              const navHeight = nav.offsetHeight;
+              window.scrollTo({
+                top: targetPanel.offsetTop - navHeight / 2,
+                behavior: "smooth",
+              });
+              const allPanels = document.querySelectorAll(
+                ".panel",
+              ) as NodeListOf<HTMLElement>;
+              allPanels.forEach((p) => p.classList.remove("active"));
+              targetPanel.classList.add("active");
+              updateNavLinks(targetId);
+            } else {
+              focusPanel(targetPanel);
+            }
+          }
+        });
+      });
+
+      // event listener for preview links
+      const previewLinks = document.querySelectorAll(
+        'a[data-preview="true"]',
+      ) as NodeListOf<HTMLAnchorElement>;
+      previewLinks.forEach((link) => {
+        link.addEventListener("click", (e: MouseEvent) => {
+          e.preventDefault();
+          // Preview functionality can be expanded later
+        });
+      });
+
+      tabHandler();
+
+      if (state.isMobile) {
+        setupMobileView();
+      } else {
+        setupDesktopView();
+        dragHandler();
+        const welcomePanel = document.getElementById(
+          "welcome",
+        ) as HTMLElement | null;
+        if (welcomePanel) {
+          focusPanel(welcomePanel);
+        }
+      }
+
+      calculateDimensions();
+    });
+  </script>
+</Layout>

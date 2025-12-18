@@ -1,0 +1,230 @@
+---
+import Navigation from "../components/Navigation.tsx";
+import TableOfContents from "../components/TableOfContents.tsx";
+import Layout from "./Layout.astro";
+
+interface Props {
+  frontmatter: {
+    title: string;
+    date: string;
+    description?: string;
+  };
+}
+
+const { frontmatter } = Astro.props as Props;
+const content = await Astro.slots.render("default");
+---
+
+<style is:inline>
+  html {
+    overflow: auto !important;
+  }
+
+  body {
+    overflow: auto !important;
+  }
+</style>
+
+<Layout title={frontmatter.title}>
+  <Navigation client:load isBlogPage={true} />
+  <div class="blog-container">
+    <article class="blog-article">
+      <header class="blog-header">
+        <h1>{frontmatter.title}</h1>
+        <time datetime={frontmatter.date}>{new Date(frontmatter.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</time>
+        {frontmatter.description && <p class="blog-description">{frontmatter.description}</p>}
+      </header>
+      <div class="blog-content">
+        <Fragment set:html={content} />
+      </div>
+    </article>
+    <TableOfContents client:load content={content} />
+  </div>
+
+  <style is:global>
+    .blog-container {
+      position: relative;
+      display: block;
+      padding: 2rem;
+      max-width: 80rem;
+      margin: 0 auto;
+      margin-left: 0;
+      padding-top: calc(var(--nav-height) + 2rem);
+      padding-right: calc(10rem);
+      z-index: 1;
+    }
+
+    .blog-container::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-color: var(--bg-color);
+      opacity: calc(1 - var(--bg-opacity));
+      z-index: -1;
+      pointer-events: none;
+    }
+
+    @media (max-width: 1200px) {
+      .blog-container {
+        padding-right: 2rem;
+      }
+
+      .toc-sidebar {
+        display: none;
+      }
+    }
+
+    .blog-article {
+      background: var(--bg-color);
+      border: 0.125rem solid var(--text-color);
+      padding: 2rem;
+    }
+
+    .blog-header {
+      margin-bottom: 2rem;
+      border-bottom: 0.125rem solid var(--border-color);
+      padding-bottom: 1rem;
+    }
+
+    .blog-header h1 {
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+      color: var(--text-color);
+    }
+
+    .blog-header time {
+      color: var(--abbr-color);
+      font-size: 0.875rem;
+      display: block;
+      margin-bottom: 0.5rem;
+    }
+
+    .blog-description {
+      font-size: 1.05rem;
+      color: var(--text-color);
+      margin-top: 0.5rem;
+    }
+
+    .blog-content {
+      line-height: 1.8;
+      font-size: 0.95rem;
+    }
+
+    .blog-content h2 {
+      margin-top: 2rem;
+      margin-bottom: 1rem;
+      font-size: 1.5rem;
+      border-bottom: 0.125rem solid var(--border-color);
+      padding-bottom: 0.5rem;
+      scroll-margin-top: calc(var(--nav-height) + 3rem);
+    }
+
+    .blog-content h3 {
+      margin-top: 1.5rem;
+      margin-bottom: 0.75rem;
+      font-size: 1.25rem;
+    }
+
+    .blog-content p {
+      margin-bottom: 1rem;
+      display: block;
+      width: 100%;
+    }
+
+    .blog-content ul,
+    .blog-content ol {
+      margin-left: 2rem;
+      margin-bottom: 1rem;
+      display: block;
+      width: 100%;
+    }
+
+    .blog-content li {
+      margin-bottom: 0.5rem;
+      display: list-item;
+      width: 100%;
+    }
+
+    .blog-content code {
+      background-color: var(--overlay-color);
+      padding: 0.125rem 0.375rem;
+      display: inline;
+      font-size: 0.9em;
+    }
+
+    .blog-content pre {
+      background-color: var(--overlay-color);
+      padding: 1rem;
+      overflow-x: auto;
+      margin-bottom: 1rem;
+      display: block;
+    }
+
+    .blog-content pre code {
+      background-color: transparent;
+      padding: 0;
+      border-radius: 0;
+      color: var(--code-color);
+    }
+
+    .toc-sidebar {
+      position: fixed;
+      right: calc((100vw - 89rem) / 2);
+      top: calc(var(--nav-height) + 2rem);
+      width: 300px;
+      max-height: calc(100vh - var(--nav-height) - 4rem);
+      overflow-y: auto;
+      background: var(--bg-color);
+      border: 0.125rem solid var(--text-color);
+      padding: 1rem;
+      font-size: 0.875rem;
+      z-index: 10;
+    }
+
+    .toc-content h3 {
+      margin: 0 0 1rem 0;
+      font-size: 1rem;
+      color: var(--text-color);
+    }
+
+    .toc-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+
+    .toc-item {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .toc-level-2 {
+      margin-left: 0;
+      margin-bottom: 0.5rem;
+    }
+
+    .toc-link {
+      color: var(--link-color);
+      text-decoration: none;
+      padding: 0.25rem 0;
+      display: block;
+      transition: all 0.2s ease;
+    }
+
+    .toc-link:hover {
+      background-color: var(--link-color);
+      color: var(--bg-color);
+      padding-left: 0.25rem;
+    }
+  </style>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const blogLink = document.querySelector('a.blog-nav-link') as HTMLAnchorElement | null;
+      if (blogLink) {
+        blogLink.classList.add('active-link');
+      }
+    });
+  </script>
+</Layout>

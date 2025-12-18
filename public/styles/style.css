@@ -61,12 +61,12 @@ body {
     text-wrap: pretty;
 }
 
-.terminal-header h2 {
+.panel-header h2 {
     font-size: 90%;
     letter-spacing: -0.04rem;
 }
 
-.terminal-content h3 {
+.panel-content h3 {
     font-size: 120%;
 }
 
@@ -286,25 +286,7 @@ nav ul li a.active-link:hover {
     opacity: 0.8;
 }
 
-/* toggle theme button */
-#toggle-theme {
-    background: none;
-    border: none;
-    color: var(--bg-color);
-    font-size: 0.813rem;
-    cursor: pointer;
-    padding: 0.5rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: background-color 0.3s;
-}
 
-#toggle-theme:hover {
-    background-color: var(--bg-color);
-    color: var(--text-color);
-    opacity: 0.9;
-}
 
 /* panel layout */
 .panels-container {
@@ -342,7 +324,7 @@ nav ul li a.active-link:hover {
 }
 
 /* panel styling */
-.terminal-window {
+.panel-window {
     border: 0.125rem solid var(--border-color);
     background-color: var(--bg-color);
     width: 100%;
@@ -353,7 +335,7 @@ nav ul li a.active-link:hover {
     flex-direction: column;
 }
 
-.terminal-header {
+.panel-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -363,11 +345,11 @@ nav ul li a.active-link:hover {
     cursor: default;
 }
 
-.terminal-tabs {
+.panel-tabs {
     margin: -0.4rem 0rem;
 }
 
-.terminal-content {
+.panel-content {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -376,19 +358,19 @@ nav ul li a.active-link:hover {
     padding: 1.25rem;
 }
 
-.terminal-tab {
+.panel-tab {
     display: none;
     height: 100%;
     width: 100%;
 }
 
-.terminal-tab.tab-active {
+.panel-tab.tab-active {
     display: flex;
     flex-direction: column;
 }
 
-/* children should use the full space, since terminal-tab is merely an organizational container */
-.terminal-tab > * {
+/* children should use the full space, since panel-tab is merely an organizational container */
+.panel-tab > * {
     flex: 1;
     width: 100%;
     height: 100%;
@@ -413,11 +395,11 @@ nav ul li a.active-link:hover {
 }
 
 /* panel focus state */
-.panel.active:not(#preview) .terminal-header {
+.panel.active:not(#preview) .panel-header {
     cursor: move;
 }
 
-.panel.active .terminal-content {
+.panel.active .panel-content {
     user-select: text;
 }
 
@@ -425,7 +407,7 @@ nav ul li a.active-link:hover {
     display: none;
 }
 
-.active .terminal-window {
+.active .panel-window {
     border: 0.125rem solid var(--text-color);
     box-shadow: 0.5rem 0.5rem 0 var(--shadow-color);
 }
@@ -433,13 +415,13 @@ nav ul li a.active-link:hover {
 .panel.dragging {
     transition: none !important;
 
-    .terminal-window {
+    .panel-window {
         user-select: none;
     }
 }
 
 /* panel inactive overlay */
-.terminal-window::after {
+.panel-window::after {
     content: '';
     position: absolute;
     inset: 0;
@@ -448,11 +430,11 @@ nav ul li a.active-link:hover {
     opacity: 1;
 }
 
-.panel:not(.active):hover .terminal-window::after {
+.panel:not(.active):hover .panel-window::after {
     opacity: 0.7;
 }
 
-.active .terminal-window::after {
+.active .panel-window::after {
     opacity: 0;
     pointer-events: none;
 }
@@ -472,7 +454,7 @@ nav ul li a.active-link:hover {
     max-width: fit-content;
     z-index: 3;
 
-    .terminal-content {
+    .panel-content {
         min-height: 20rem;
         justify-content: space-between;
     }
@@ -517,7 +499,7 @@ sup.highlight {
 }
 
 /* links */
-.terminal-content a.highlight {
+.panel-content a.highlight {
     background-color: var(--link-color);
     color: var(--bg-color);
     padding: 0 0.25rem;
@@ -525,7 +507,7 @@ sup.highlight {
     transition: all 0.3s ease;
 }
 
-.terminal-content a.highlight:hover {
+.panel-content a.highlight:hover {
     color: var(--bg-color);
     opacity: 0.9;
 }
@@ -547,14 +529,14 @@ sup.highlight {
     }
 }
 
-#preview .terminal-window {
+#preview .panel-window {
     height: 100%;
     margin: 0;
     display: flex;
     flex-direction: column;
 }
 
-#preview .terminal-content {
+#preview .panel-content {
     flex: 1;
     display: flex;
     flex-direction: column;
@@ -652,10 +634,6 @@ sup.highlight {
         padding: 0.25rem 0.5rem;
     }
 
-    #toggle-theme {
-        padding: 0.2rem;
-    }
-
     .panels-container {
         min-height: calc(100vh - var(--nav-height));
         height: auto;
@@ -682,29 +660,29 @@ sup.highlight {
         transform: none !important;
     }
 
-    .terminal-window {
+    .panel-window {
         box-shadow: none;
     }
 
-    .terminal-content {
+    .panel-content {
         min-height: 25rem;
     }
 
-    .panel.active .terminal-header {
+    .panel.active .panel-header {
         cursor: default;
     }
 
-    .terminal-header {
+    .panel-header {
         flex-direction: row;
         padding: 0.4rem 0.8rem;
         justify-content: space-between;
     }
 
-    .terminal-header h2 {
+    .panel-header h2 {
         font-size: 110%;
     }
 
-    .terminal-tabs {
+    .panel-tabs {
         display: flex;
         flex-direction: row;
         align-items: center;

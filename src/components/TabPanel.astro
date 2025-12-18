@@ -1,0 +1,43 @@
+---
+interface Props {
+  id?: string;
+  title: string;
+  tabs?: Array<{ name: string; label?: string }>;
+}
+
+const { id, title, tabs = [] } = Astro.props;
+
+let tabNames: Array<{ name: string; label: string }> = [];
+
+if (tabs.length > 0) {
+  tabNames = tabs.map((tab) => ({
+    name: tab.name,
+    label: tab.label || tab.name,
+  }));
+}
+---
+
+<div class="panel" {id}>
+  <div class="panel-window">
+    <header class="panel-header">
+      <h2>{title}</h2>
+      {
+        tabNames.length > 0 && (
+          <div class="panel-tabs">
+            {tabNames.map((tab, index) => (
+              <button
+                class={`tab-button ${index === 0 ? "tab-active" : ""}`}
+                data-tab={tab.name}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        )
+      }
+    </header>
+    <section class="panel-content">
+      <slot />
+    </section>
+  </div>
+</div>

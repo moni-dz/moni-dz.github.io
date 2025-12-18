@@ -1,0 +1,162 @@
+---
+import Navigation from "../../components/Navigation.tsx";
+import Layout from "../../layouts/Layout.astro";
+
+const modules = import.meta.glob<any>('./*.md', { eager: true });
+const posts = Object.values(modules)
+  .filter(module => module.frontmatter && module.url)
+  .map(module => ({
+    ...module,
+    formattedDate: new Date(module.frontmatter.date).toISOString().split('T')[0]
+  }))
+  .sort((a, b) => {
+    const dateA = new Date(a.frontmatter.date).getTime();
+    const dateB = new Date(b.frontmatter.date).getTime();
+    return dateB - dateA;
+  })
+
+---
+
+<style is:global>
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-color: var(--bg-color);
+    opacity: calc(1 - var(--bg-opacity));
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  html {
+    overflow: hidden !important;
+  }
+
+  body {
+    overflow: hidden !important;
+  }
+</style>
+
+<Layout title="blog">
+  <Navigation client:load isBlogPage={true} />
+  <div class="blog-listing">
+    <header class="blog-listing-header">
+      <h1>blog</h1>
+    </header>
+    <ul class="blog-posts-list">
+      {posts.map(post => (
+        <li class="blog-post-item">
+          <a href={post.url} class="blog-post-link">
+            {post.frontmatter.title}
+          </a>
+          <time datetime={post.frontmatter.date} class="blog-post-date">
+            {post.formattedDate}
+          </time>
+        </li>
+      ))}
+    </ul>
+  </div>
+
+  <style>
+    .blog-listing {
+      position: fixed;
+      top: var(--nav-height);
+      left: 50%;
+      transform: translateX(-50%);
+      width: calc(100vw - 4rem);
+      max-width: 70rem;
+      height: calc(100vh - var(--nav-height) - 4rem);
+      margin: 2rem auto;
+      padding: 0;
+      z-index: 1;
+      background: var(--bg-color);
+      border: 0.125rem solid var(--text-color);
+      display: flex;
+      flex-direction: column;
+    }
+
+
+
+    .blog-listing > header {
+      flex-shrink: 0;
+      padding: 2rem;
+      padding-bottom: 1rem;
+      border-bottom: 0.125rem solid var(--border-color);
+    }
+
+    .blog-listing > ul {
+      flex: 1;
+      overflow-y: auto;
+      padding: 2rem;
+      padding-top: 1rem;
+    }
+
+    .blog-listing-header {
+      margin: 0;
+      border: none;
+      padding: 0;
+    }
+
+    .blog-listing-header h1 {
+      font-size: 1.75rem;
+      margin: 0;
+      color: var(--text-color);
+    }
+
+    .blog-posts-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+      width: 100%;
+    }
+
+    .blog-post-item {
+      padding: 1rem;
+      border: 0.125rem solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      transition: all 0.2s ease;
+      background-color: var(--overlay-color);
+    }
+
+    .blog-post-item:hover {
+      background-color: var(--overlay-color);
+      opacity: 0.8;
+    }
+
+    .blog-post-link {
+      font-size: 1.125rem;
+      font-weight: 500;
+      color: var(--link-color);
+      text-decoration: none;
+      padding: 0;
+      display: block;
+      width: 100%;
+    }
+
+    .blog-post-link:hover {
+      background-color: var(--link-color);
+      color: var(--bg-color);
+      padding: 0;
+    }
+
+    .blog-post-date {
+      font-size: 0.875rem;
+      color: var(--abbr-color);
+    }
+  </style>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const blogLink = document.querySelector('a.blog-nav-link') as HTMLAnchorElement | null;
+      if (blogLink) {
+        blogLink.classList.add('active-link');
+      }
+    });
+  </script>
+
+</Layout>
