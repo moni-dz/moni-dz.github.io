@@ -31,8 +31,20 @@ const content = await Astro.slots.render("default");
     <article class="blog-article">
       <header class="blog-header">
         <h1>{frontmatter.title}</h1>
-        <time datetime={frontmatter.date}>{new Date(frontmatter.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</time>
-        {frontmatter.description && <p class="blog-description">{frontmatter.description}</p>}
+        <time datetime={frontmatter.date}
+          >{
+            new Date(frontmatter.date).toLocaleDateString("en-US", {
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+            })
+          }</time
+        >
+        {
+          frontmatter.description && (
+            <p class="blog-description">{frontmatter.description}</p>
+          )
+        }
       </header>
       <div class="blog-content">
         <Fragment set:html={content} />
@@ -54,8 +66,25 @@ const content = await Astro.slots.render("default");
       z-index: 1;
     }
 
+    @media (max-width: 640px) {
+      .blog-container {
+        padding: 1rem;
+        padding-top: calc(var(--nav-height) + 1rem);
+        padding-right: 1rem;
+        max-width: 100%;
+        margin: 0 auto;
+        margin-left: auto;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .blog-container {
+        padding-right: 2rem;
+      }
+    }
+
     .blog-container::before {
-      content: '';
+      content: "";
       position: fixed;
       inset: 0;
       background-color: var(--bg-color);
@@ -74,10 +103,24 @@ const content = await Astro.slots.render("default");
       }
     }
 
+    @media (max-width: 640px) {
+      .toc-sidebar {
+        display: none !important;
+      }
+    }
+
     .blog-article {
       background: var(--bg-color);
       border: 0.125rem solid var(--text-color);
       padding: 2rem;
+    }
+
+    @media (max-width: 640px) {
+      .blog-article {
+        padding: 1rem;
+        border: 0.125rem solid var(--text-color) !important;
+        margin: 0 auto;
+      }
     }
 
     .blog-header {
@@ -90,6 +133,12 @@ const content = await Astro.slots.render("default");
       font-size: 2rem;
       margin-bottom: 0.5rem;
       color: var(--text-color);
+    }
+
+    @media (max-width: 640px) {
+      .blog-header h1 {
+        font-size: 1.5rem;
+      }
     }
 
     .blog-header time {
@@ -110,6 +159,13 @@ const content = await Astro.slots.render("default");
       font-size: 0.95rem;
     }
 
+    @media (max-width: 640px) {
+      .blog-content {
+        font-size: 0.9rem;
+        line-height: 1.6;
+      }
+    }
+
     .blog-content h2 {
       margin-top: 2rem;
       margin-bottom: 1rem;
@@ -119,10 +175,25 @@ const content = await Astro.slots.render("default");
       scroll-margin-top: calc(var(--nav-height) + 3rem);
     }
 
+    @media (max-width: 640px) {
+      .blog-content h2 {
+        font-size: 1.25rem;
+        margin-top: 1.5rem;
+        margin-bottom: 0.75rem;
+      }
+    }
+
     .blog-content h3 {
       margin-top: 1.5rem;
       margin-bottom: 0.75rem;
       font-size: 1.25rem;
+    }
+
+    @media (max-width: 640px) {
+      .blog-content h3 {
+        font-size: 1rem;
+        margin-top: 1rem;
+      }
     }
 
     .blog-content p {
@@ -139,10 +210,49 @@ const content = await Astro.slots.render("default");
       width: 100%;
     }
 
+    @media (max-width: 640px) {
+      .blog-content ul,
+      .blog-content ol {
+        margin-left: 1.5rem;
+        margin-bottom: 0.75rem;
+      }
+    }
+
     .blog-content li {
       margin-bottom: 0.5rem;
       display: list-item;
       width: 100%;
+    }
+
+    .blog-content table {
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      margin-bottom: 1rem;
+    }
+
+    .blog-content th,
+    .blog-content td {
+      border: 0.125rem solid var(--border-color);
+      padding: 0.75rem 1rem;
+      text-align: left;
+    }
+
+    .blog-content th {
+      background-color: var(--overlay-color);
+      font-weight: 600;
+    }
+
+    @media (max-width: 640px) {
+      .blog-content table {
+        font-size: 0.85rem;
+      }
+
+      .blog-content th,
+      .blog-content td {
+        padding: 0.5rem 0.75rem;
+      }
     }
 
     .blog-content code {
@@ -150,6 +260,15 @@ const content = await Astro.slots.render("default");
       padding: 0.125rem 0.375rem;
       display: inline;
       font-size: 0.9em;
+      word-break: break-word;
+      overflow-wrap: break-word;
+      max-width: 100%;
+    }
+
+    @media (max-width: 640px) {
+      .blog-content code {
+        font-size: 0.8em;
+      }
     }
 
     .blog-content pre {
@@ -158,6 +277,18 @@ const content = await Astro.slots.render("default");
       overflow-x: auto;
       margin-bottom: 1rem;
       display: block;
+      max-width: 100%;
+      -webkit-overflow-scrolling: touch;
+      border-radius: 0.25rem;
+    }
+
+    @media (max-width: 640px) {
+      .blog-content pre {
+        padding: 0.75rem;
+        font-size: 0.75em;
+        line-height: 1.4;
+        margin-bottom: 1rem;
+      }
     }
 
     .blog-content pre code {
@@ -220,10 +351,12 @@ const content = await Astro.slots.render("default");
   </style>
 
   <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      const blogLink = document.querySelector('a.blog-nav-link') as HTMLAnchorElement | null;
+    document.addEventListener("DOMContentLoaded", () => {
+      const blogLink = document.querySelector(
+        "a.blog-nav-link",
+      ) as HTMLAnchorElement | null;
       if (blogLink) {
-        blogLink.classList.add('active-link');
+        blogLink.classList.add("active-link");
       }
     });
   </script>

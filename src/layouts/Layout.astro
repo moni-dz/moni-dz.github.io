@@ -13,23 +13,33 @@ const { title } = Astro.props
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
     <meta name="description" content="web programming" />
     <title>{title}</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      rel="preload"
-      as="style"
-      onload="this.onload=null;this.rel='stylesheet'"
-      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;1,100;1,200;1,300;1,400;1,500;1,600;1,700&display=swap"
-      crossorigin
-    />
-    <link
-      rel="preload"
-      as="font"
-      type="font/woff2"
-      href="https://fonts.gstatic.com/s/ibmplexmono/v19/-F6rfjptAgt5VM-kVkqdyU8n1ioStkdvp-8_FtFg95o.woff2"
-      crossorigin
-    />
+    <!-- Conditionally load IBM Plex Mono only on non-Apple platforms -->
+    <script>
+      const isApplePlatform = /Mac|iPhone|iPad|iPod/.test(navigator.userAgent);
+      if (!isApplePlatform) {
+        const link = document.createElement('link');
+        link.rel = 'preconnect';
+        link.href = 'https://fonts.googleapis.com';
+        document.head.appendChild(link);
+
+        const link2 = document.createElement('link');
+        link2.rel = 'preconnect';
+        link2.href = 'https://fonts.gstatic.com';
+        link2.crossOrigin = 'anonymous';
+        document.head.appendChild(link2);
+
+        const fontLink = document.createElement('link');
+        fontLink.rel = 'preload';
+        fontLink.as = 'style';
+        fontLink.href = 'https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;1,100;1,200;1,300;1,400;1,500;1,600;1,700&display=swap';
+        fontLink.crossOrigin = 'anonymous';
+        fontLink.onload = function() { this.onload = null; this.rel = 'stylesheet'; };
+        document.head.appendChild(fontLink);
+      }
+    </script>
     <noscript>
+      <link rel="preconnect" href="https://fonts.googleapis.com" />
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
       <link
         rel="stylesheet"
         href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;1,100;1,200;1,300;1,400;1,500;1,600;1,700&display=swap"

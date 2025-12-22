@@ -7,7 +7,7 @@ description: "A retrospective on using SIMD to find the largest N digits in a ba
 
 ## The Problem
 
-[Day 3](https://adventofcode.com/2025/day/3) was deceptively simple: given a grid of single digits representing battery joltage ratings, find the largest possible n-digit number (n = 2 for part 1, n = 12 for part 2) you can make per row, then sum them all up.
+[Day 3](https://adventofcode.com/2025/day/3) was deceptively simple: given a grid of single digits representing battery joltage ratings, find the largest possible $n$-digit number ($n = 2$ for part 1, $n = 12$ for part 2) you can make per row, then sum them all up.
 
 For example, in the row `987654321111111`, the answer is **98** (turn on the first two batteries).
 
@@ -51,7 +51,7 @@ Part 1 uses a reverse iteration trick, as you scan right-to-left, you track the 
 
 ## Time Complexity
 
-After submitting this solution, I realized that finding $n$ maximums sequentially was slow for $n=12$. The original solution calls `.iter().max()` $n$ times per row, which is $\text{O}(100n) = \text{O}(1200)$ byte comparisons per row.
+After submitting this solution, I realized that finding $n$ maximums sequentially was slow for $n=12$. The original solution calls `.iter().max()` $n$ times per row, which is $\text{O}(100n) = \text{O}(1200)$ byte comparisons per row for the input.
 
 ### SIMD vs sequential for one iteration
 
@@ -63,6 +63,15 @@ Using the first 32 bytes of our input string, here's what happens in a single lo
     padding: 1rem;
     background-color: rgba(var(--bg-accent), 0.5);
     border-left: 3px solid var(--link-color);
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  @media (max-width: 640px) {
+    .simd-op {
+      margin: 1.5rem 0 1rem 0;
+      padding: 0.75rem;
+    }
   }
 
   .simd-op-title {
@@ -79,6 +88,8 @@ Using the first 32 bytes of our input string, here's what happens in a single lo
     margin-bottom: 0.75rem;
     flex-wrap: wrap;
     align-items: center;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
   .simd-byte {
@@ -93,6 +104,15 @@ Using the first 32 bytes of our input string, here's what happens in a single lo
     background-color: var(--bg-color);
     color: var(--text-color);
     font-family: monospace;
+    flex-shrink: 0;
+  }
+
+  @media (max-width: 640px) {
+    .simd-byte {
+      width: 20px;
+      height: 20px;
+      font-size: 8px;
+    }
   }
 
   .simd-byte.max {
@@ -269,77 +289,77 @@ Using the first 32 bytes of our input string, here's what happens in a single lo
       <span class="simd-byte">0</span>
       <span class="simd-byte">0</span>
       <span class="simd-byte">0</span>
+      <span class="simd-byte">0</span>
+      <span class="simd-byte">0</span>
+      <span class="simd-byte">0</span>
+      <span class="simd-byte">0</span>
+      <span class="simd-byte">0</span>
+      <span class="simd-byte">0</span>
+      <span class="simd-byte">0</span>
+      <span class="simd-byte">0</span>
+      <span class="simd-byte">0</span>
+      <span class="simd-byte">0</span>
+      <span class="simd-byte">0</span>
+      <span class="simd-byte">0</span>
+      <span class="simd-byte">0</span>
+      <span class="simd-byte">0</span>
+      <span class="simd-byte">0</span>
+      <span class="simd-byte">0</span>
+      <span class="simd-byte">0</span>
+      <span class="simd-byte">0</span>
+      <span class="simd-byte">0</span>
+      <span class="simd-byte">0</span>
+      <span class="simd-byte">0</span>
+      <span class="simd-byte">0</span>
+      <span class="simd-byte">0</span>
+      <span class="simd-byte">0</span>
+      <span class="simd-byte">0</span>
       <span class="simd-byte match">1</span>
-      <span class="simd-byte">0</span>
-      <span class="simd-byte">0</span>
-      <span class="simd-byte">0</span>
-      <span class="simd-byte">0</span>
-      <span class="simd-byte">0</span>
-      <span class="simd-byte">0</span>
-      <span class="simd-byte">0</span>
-      <span class="simd-byte">0</span>
-      <span class="simd-byte">0</span>
-      <span class="simd-byte">0</span>
-      <span class="simd-byte">0</span>
-      <span class="simd-byte">0</span>
-      <span class="simd-byte">0</span>
-      <span class="simd-byte">0</span>
-      <span class="simd-byte">0</span>
-      <span class="simd-byte">0</span>
-      <span class="simd-byte">0</span>
-      <span class="simd-byte">0</span>
-      <span class="simd-byte">0</span>
-      <span class="simd-byte">0</span>
-      <span class="simd-byte">0</span>
-      <span class="simd-byte">0</span>
-      <span class="simd-byte">0</span>
-      <span class="simd-byte">0</span>
-      <span class="simd-byte">0</span>
       <span class="simd-byte">0</span>
       <span class="simd-byte">0</span>
       <span class="simd-byte">0</span>
     </div>
   </div>
 
-  <!-- Step 6: trailing_zeros -->
   <div class="simd-op">
     <div class="simd-op-title"><code>mask.trailing_zeros()</code></div>
     <div class="simd-bytes">
-      <span class="simd-byte max">0</span>
-      <span class="simd-byte max">0</span>
-      <span class="simd-byte max">0</span>
+      <span class="simd-byte">0</span>
+      <span class="simd-byte">0</span>
+      <span class="simd-byte">0</span>
+      <span class="simd-byte">0</span>
+      <span class="simd-byte">0</span>
+      <span class="simd-byte">0</span>
+      <span class="simd-byte">0</span>
+      <span class="simd-byte">0</span>
+      <span class="simd-byte">0</span>
+      <span class="simd-byte">0</span>
+      <span class="simd-byte">0</span>
+      <span class="simd-byte">0</span>
+      <span class="simd-byte">0</span>
+      <span class="simd-byte">0</span>
+      <span class="simd-byte">0</span>
+      <span class="simd-byte">0</span>
+      <span class="simd-byte">0</span>
+      <span class="simd-byte">0</span>
+      <span class="simd-byte">0</span>
+      <span class="simd-byte">0</span>
+      <span class="simd-byte">0</span>
+      <span class="simd-byte">0</span>
+      <span class="simd-byte">0</span>
+      <span class="simd-byte">0</span>
+      <span class="simd-byte">0</span>
+      <span class="simd-byte">0</span>
+      <span class="simd-byte">0</span>
+      <span class="simd-byte">0</span>
       <span class="simd-byte">1</span>
-      <span class="simd-byte">0</span>
-      <span class="simd-byte">0</span>
-      <span class="simd-byte">0</span>
-      <span class="simd-byte">0</span>
-      <span class="simd-byte">0</span>
-      <span class="simd-byte">0</span>
-      <span class="simd-byte">0</span>
-      <span class="simd-byte">0</span>
-      <span class="simd-byte">0</span>
-      <span class="simd-byte">0</span>
-      <span class="simd-byte">0</span>
-      <span class="simd-byte">0</span>
-      <span class="simd-byte">0</span>
-      <span class="simd-byte">0</span>
-      <span class="simd-byte">0</span>
-      <span class="simd-byte">0</span>
-      <span class="simd-byte">0</span>
-      <span class="simd-byte">0</span>
-      <span class="simd-byte">0</span>
-      <span class="simd-byte">0</span>
-      <span class="simd-byte">0</span>
-      <span class="simd-byte">0</span>
-      <span class="simd-byte">0</span>
-      <span class="simd-byte">0</span>
-      <span class="simd-byte">0</span>
-      <span class="simd-byte">0</span>
-      <span class="simd-byte">0</span>
-      <span class="simd-byte">0</span>
+      <span class="simd-byte max">0</span>
+      <span class="simd-byte max">0</span>
+      <span class="simd-byte max">0</span>
     </div>
-    <div class="simd-step-desc">mask.trailing_zeros() = 3 (count leading zero bits: 0x0000_1000 has 3 trailing zeros)</div>
-    <div class="simd-step-desc">max_pos = j + 3 = 0 + 3 = 3</div>
+    <div class="simd-step-desc">mask.trailing_zeros() = 3 (least-significant bit first)</div>
+    <div class="simd-step-desc">max_pos = j + trailing_zeros() = 0 + 3 = 3</div>
+    <div class="simd-step-desc">(j is the starting position in the current segment, trailing_zeros() is the offset to the first set bit)</div>
   </div>
 </div>
 
@@ -488,6 +508,8 @@ fn max_joltage<const N: usize>(bytes: &[u8]) -> u64 {
     margin: 1.5rem 0;
     font-size: 0.95rem;
     width: 100%;
+    overflow-x: auto;
+    display: block;
   }
   
   .benchmark-table th,
@@ -495,6 +517,7 @@ fn max_joltage<const N: usize>(bytes: &[u8]) -> u64 {
     border: 1px solid var(--border-color);
     padding: 0.75rem 1rem;
     text-align: right;
+    white-space: nowrap;
   }
   
   .benchmark-table th {
@@ -505,6 +528,17 @@ fn max_joltage<const N: usize>(bytes: &[u8]) -> u64 {
   
   .benchmark-table td:first-child {
     text-align: left;
+  }
+
+  @media (max-width: 640px) {
+    .benchmark-table {
+      font-size: 0.85rem;
+    }
+
+    .benchmark-table th,
+    .benchmark-table td {
+      padding: 0.5rem 0.75rem;
+    }
   }
 </style>
 

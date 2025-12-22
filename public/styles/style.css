@@ -24,7 +24,7 @@
     margin: 0;
     padding: 0;
     box-sizing: border-box;
-    font-family: 'SF Mono', 'IBM Plex Mono', 'Courier', monospace;
+    font-family: -apple-system-ui-monospace, 'SF Mono', 'Monaco', 'IBM Plex Mono', 'Courier', monospace;
     letter-spacing: -0.031rem;
     text-underline-offset: 0.188rem;
 }
@@ -72,12 +72,16 @@ body {
 
 abbr {
     color: var(--abbr-color);
+    display: inline;
+    white-space: nowrap;
 }
 
 p {
-    display: inline-block;
+    display: block;
     margin-top: 0;
     text-wrap: pretty;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
 
 a {
@@ -86,6 +90,15 @@ a {
     text-decoration: none;
     padding: 0 0.125rem;
     transition: all 0.3s ease;
+}
+
+@media (max-width: 31.25rem) {
+    a {
+        padding: 0.25rem 0.125rem;
+        min-height: 44px;
+        display: inline-flex;
+        align-items: center;
+    }
 }
 
 a:hover {
@@ -97,10 +110,19 @@ abbr code {
     text-decoration: inherit;
 }
 
-code,
-pre {
+code {
     display: inline-block;
     color: var(--code-color);
+    word-break: break-word;
+    overflow-wrap: break-word;
+}
+
+pre {
+    display: block;
+    color: var(--code-color);
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    max-width: 100%;
 }
 
 code a {
@@ -144,27 +166,42 @@ section ul li {
     margin-bottom: -0.4rem;
 }
 
+@media (max-width: 31.25rem) {
+    section ul li {
+        margin-top: 0.2rem;
+        margin-bottom: 0.2rem;
+    }
+}
+
 section ul * {
     font-size: 105%;
 }
 
 details {
     padding: 0;
+    margin: 0;
 }
 
-details[open] > summary {
-    margin: 0rem 0rem -1.5rem 0rem;
+details > summary {
+    margin: 0;
     padding: 0;
+    cursor: pointer;
 }
 
 details > ul {
-    margin: 0rem 0rem -2rem 0rem;
-    padding-left: 1rem;
-    line-height: 1.2;
+    margin: 0.5rem 0 0 0;
+    padding-left: 0;
+    line-height: 1.6;
+    display: block;
 }
 
 details li {
-    margin: 0.2rem 0;
+    margin: 0.5rem 0 0 0;
+    padding-left: 1.5rem;
+    line-height: 1.5;
+    display: list-item;
+    list-style-type: "* ";
+    list-style-position: outside;
 }
 
 aside {
@@ -206,12 +243,28 @@ abbr[title] {
     align-items: stretch;
 }
 
+@media (max-width: 31.25rem) {
+     #about-container {
+         flex-direction: column;
+         align-items: center;
+         gap: 1rem;
+     }
+ }
+
 #about-icon-container {
     flex: 0 0 30%;
     display: flex;
     flex-direction: column;
     align-items: center;
     padding-right: 1.25rem;
+}
+
+@media (max-width: 31.25rem) {
+    #about-icon-container {
+        flex: 0 0 auto;
+        padding-right: 0;
+        padding-bottom: 1rem;
+    }
 }
 
 #about-container::after {
@@ -224,6 +277,18 @@ abbr[title] {
     background-color: var(--border-color);
 }
 
+@media (max-width: 31.25rem) {
+    #about-container::after {
+        content: '';
+        position: absolute;
+        top: calc(30%);
+        left: 0;
+        right: 0;
+        height: 0.125rem;
+        background-color: var(--border-color);
+    }
+}
+
 #about-icon {
     max-width: 100%;
     height: auto;
@@ -231,6 +296,13 @@ abbr[title] {
     filter: grayscale(100%);
     transition: filter 0.3s ease;
     border: 0.0625rem solid var(--text-color);
+    display: block;
+}
+
+@media (max-width: 31.25rem) {
+    #about-icon {
+        max-width: 80%;
+    }
 }
 
 #about-icon:hover {
@@ -618,12 +690,25 @@ sup.highlight {
     nav {
         padding: 0.5rem;
         flex-direction: column;
+        gap: 0.5rem;
+        height: auto;
     }
 
     nav ul {
         flex-wrap: wrap;
         justify-content: center;
         padding: 0.5rem 0;
+        display: flex;
+        gap: 0.25rem;
+    }
+    
+    nav button.toggle-theme {
+        padding: 0.25rem 0.5rem !important;
+        font-size: 0.65rem !important;
+        white-space: normal;
+        flex-shrink: 0;
+        width: 100%;
+        text-align: center;
     }
 
     nav ul li {
@@ -632,6 +717,9 @@ sup.highlight {
 
     nav ul li a {
         padding: 0.25rem 0.5rem;
+        min-height: 44px;
+        display: flex;
+        align-items: center;
     }
 
     .panels-container {
@@ -662,6 +750,7 @@ sup.highlight {
 
     .panel-window {
         box-shadow: none;
+        border: 0.125rem solid var(--border-color);
     }
 
     .panel-content {

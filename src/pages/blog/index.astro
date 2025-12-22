@@ -21,7 +21,10 @@ const posts = Object.values(modules)
   body::before {
     content: '';
     position: fixed;
-    inset: 0;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
     background-color: var(--bg-color);
     opacity: calc(1 - var(--bg-opacity));
     z-index: 0;
@@ -73,6 +76,18 @@ const posts = Object.values(modules)
       border: 0.125rem solid var(--text-color);
       display: flex;
       flex-direction: column;
+      box-sizing: border-box;
+    }
+    
+    @media (max-width: 640px) {
+      .blog-listing {
+        width: calc(100vw - 2rem);
+        height: calc(100vh - var(--nav-height) - 2rem);
+        margin: 1rem;
+        top: calc(var(--nav-height) + 1rem);
+        left: 1rem;
+        transform: none;
+      }
     }
 
 
