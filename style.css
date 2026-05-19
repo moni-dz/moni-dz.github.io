@@ -45,15 +45,15 @@ body {
 }
 
 /* additional font styling */
-#html5 {
+.html5 {
     color: light-dark(oklch(40.37% 0.1544 60.71), oklch(76.85% 0.1926 60.71));
 }
 
-#css3 {
+.css3 {
     color: light-dark(oklch(37.87% 0.1454 255.71), oklch(73.7% 0.1548 241.47));
 }
 
-#es6 {
+.es6 {
     color: light-dark(oklch(40.56% 0.1322 93.37), oklch(87.09% 0.1817 93.37));
 }
 

@@ -1,584 +1,721 @@
-const state = {
-    isMobile: window.innerWidth <= 500,
-    containerDimensions: { rect: null, navHeight: 0 },
-    resizeTimeout: null,
-    isDragging: false,
-    activePanel: null,
-    previewPanel: null,
-    sourcePanel: null,
-    startX: 0,
-    startY: 0,
-    initialPanelX: 0,
-    initialPanelY: 0,
-    lastZIndex: 0,
-    previewZIndex: 1000,
-    panelBounds: new Map(),
-};
+(function () {
+    'use strict';
 
-function calculatePanelBounds(panel) {
-    const panelRect = panel.getBoundingClientRect();
-    const containerRect = state.containerDimensions.rect;
-    const navHeight = state.containerDimensions.navHeight;
+    const MOBILE_QUERY = '(max-width: 31.25rem)';
+    const RESIZE_DEBOUNCE_MS = 100;
+    const HIGHLIGHT_MS = 2000;
+    const TOOLTIP_DISMISS_MS = 3000;
+    const SWIPE_THRESHOLD_PX = 50;
 
-    return {
-        minX: containerRect.left,
-        maxX: containerRect.right - panelRect.width,
-        minY: containerRect.top - navHeight,
-        maxY: containerRect.bottom - panelRect.height - navHeight
+    const selectors = {
+        activePanel: '.panel.active',
+        deviceMessage: '.device-specific-message',
+        nav: 'nav',
+        navLink: 'nav a[data-panel]',
+        panel: '.panel',
+        panelsContainer: '.panels-container',
+        previewLink: 'a[data-preview="true"]',
+        tab: '.terminal-tab',
+        tabButton: '.tab-button',
+        tabGroup: '.terminal-tabs',
+        terminalHeader: '.terminal-header',
+        terminalWindow: '.terminal-window',
+        themeToggle: '#toggle-theme',
     };
-}
 
-function calculateDimensions() {
-    const updateDimensions = () => {
-        const container = document.querySelector('.panels-container');
-        state.containerDimensions.rect = container.getBoundingClientRect();
-        state.containerDimensions.navHeight = document.querySelector('nav').offsetHeight;
+    const state = {
+        activePanel: null,
+        containerRect: null,
+        drag: {
+            frame: 0,
+            isActive: false,
+            panel: null,
+            pointerX: 0,
+            pointerY: 0,
+            startX: 0,
+            startY: 0,
+            startPanelX: 0,
+            startPanelY: 0,
+        },
+        isMobile: window.matchMedia(MOBILE_QUERY).matches,
+        navHeight: 0,
+        panelBounds: new Map(),
+        previewPanel: null,
+        previewSourcePanel: null,
+        resizeTimeout: 0,
+        zIndexMax: 0,
+    };
 
-        const panels = document.querySelectorAll('.panel');
-        state.panelBounds.clear();
-        panels.forEach(panel => { if (panel.id !== 'preview') state.panelBounds.set(panel, calculatePanelBounds(panel)); });
+    function queryRequired(selector, root = document) {
+        const element = root.querySelector(selector);
+        if (element) return element;
+
+        throw new Error(`Missing required element: ${selector}`);
     }
 
-    updateDimensions();
+    function queryAll(selector, root = document) {
+        return Array.from(root.querySelectorAll(selector));
+    }
 
-    window.addEventListener('resize', () => {
-        clearTimeout(state.resizeTimeout);
-        state.resizeTimeout = setTimeout(updateDimensions, 100);
-    });
-}
+    function getPanels() {
+        return queryAll(selectors.panel);
+    }
 
-function focusPanel(panel) {
-    if (state.isMobile) {
-        const container = document.querySelector('.panels-container');
-        const navHeight = document.querySelector('nav').offsetHeight;
+    function getInteractivePanels() {
+        return getPanels().filter((panel) => panel.id !== 'preview');
+    }
 
-        document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-        panel.classList.add('active');
+    function getPointer(event) {
+        return event.touches?.[0] ?? event.changedTouches?.[0] ?? event;
+    }
 
-        container.scrollTo({
-            top: panel.offsetTop - navHeight / 2,
-            behavior: 'smooth'
+    function getPanelZIndex(panel) {
+        const styleValue = panel.style.zIndex || getComputedStyle(panel).zIndex;
+        const zIndex = Number.parseInt(styleValue, 10);
+
+        return Number.isFinite(zIndex) ? zIndex : 0;
+    }
+
+    function refreshZIndexMax() {
+        state.zIndexMax = getPanels().reduce((max, panel) => {
+            return Math.max(max, getPanelZIndex(panel));
+        }, 0);
+    }
+
+    function getPanelBounds(panel) {
+        const panelRect = panel.getBoundingClientRect();
+        const containerRect = state.containerRect;
+
+        // Dragging writes transforms relative to the panels container. Keeping bounds in the same
+        // coordinate system avoids subtle offsets when the fixed nav changes height on mobile.
+        return {
+            maxX: Math.max(0, containerRect.width - panelRect.width),
+            maxY: Math.max(0, containerRect.height - panelRect.height),
+            minX: 0,
+            minY: 0,
+        };
+    }
+
+    function refreshLayoutMeasurements() {
+        const container = queryRequired(selectors.panelsContainer);
+        const nav = queryRequired(selectors.nav);
+
+        state.containerRect = container.getBoundingClientRect();
+        state.navHeight = nav.offsetHeight;
+        state.isMobile = window.matchMedia(MOBILE_QUERY).matches;
+        state.panelBounds.clear();
+
+        for (const panel of getInteractivePanels()) {
+            state.panelBounds.set(panel, getPanelBounds(panel));
+        }
+    }
+
+    function bindLayoutMeasurements() {
+        refreshLayoutMeasurements();
+
+        window.addEventListener('resize', () => {
+            window.clearTimeout(state.resizeTimeout);
+            state.resizeTimeout = window.setTimeout(() => {
+                refreshLayoutMeasurements();
+            }, RESIZE_DEBOUNCE_MS);
         });
-    } else {
-        if (panel.classList.contains('active')) return;
+    }
 
-        const panels = document.querySelectorAll('.panel');
-        const currentZ = parseInt(panel.style.zIndex || 0);
-
-        if (panel.id !== 'preview') {
-            panels.forEach(p => {
-                if (p.id === 'preview') return;
-
-                const pZ = parseInt(p.style.zIndex || 0);
-                if (pZ > currentZ) p.style.zIndex = Math.max(1, pZ - 1);
-                p.classList.remove('active');
-            });
-
-            panel.style.zIndex = state.lastZIndex;
+    function setActivePanel(panel) {
+        for (const candidate of getPanels()) {
+            candidate.classList.toggle('active', candidate === panel);
         }
 
-        panel.classList.add('active');
-        state.activePanel = panel;
-    }
-
-    if (panel.id && panel.id !== 'preview') updateNavLinks(panel.id);
-}
-
-function updateNavLinks(activeId) {
-    document.querySelectorAll('nav a').forEach(link => {
-        link.classList.toggle('active-link', link.dataset.panel === activeId);
-    });
-}
-
-function refLinkHandler() {
-    const refMapping = {};
-
-    document.querySelectorAll('sup[id^="ref-"]').forEach(ref => {
-        const refNumber = ref.id.split('-')[1];
-        refMapping[refNumber] = ref.closest('.panel').id;
-
-        ref.addEventListener('click', (e) => {
-            e.preventDefault();
-            const refLink = document.querySelector(`#back-ref-${refNumber}`);
-            handleRefClick('refs', refLink);
-        });
-    });
-
-    document.querySelector('#refs').querySelectorAll('sup[id^="back-ref-"]').forEach(ref => {
-        ref.addEventListener('click', (e) => {
-            e.preventDefault();
-            const refNumber = ref.id.split('-')[2];
-            const targetPanelId = refMapping[refNumber];
-            const originalRef = document.querySelector(`#ref-${refNumber}`);
-            handleRefClick(targetPanelId, originalRef);
-        });
-    });
-}
-
-function handleRefClick(targetId, highlightElement) {
-    const targetPanel = document.getElementById(targetId);
-    if (!targetPanel) return;
-
-    focusPanel(targetPanel);
-
-    if (highlightElement) {
-        highlightElement.classList.add('highlight');
-        setTimeout(() => highlightElement.classList.remove('highlight'), 2000);
-        if (state.isMobile) setTimeout(() => { highlightElement.scrollIntoView({ behavior: 'smooth', block: 'center'}); }, 100);
-    }
-}
-
-function dragHandler() {
-    if (state.isMobile) return;
-
-    const startDragging = (e) => {
-        const event = e.touches?.[0] ?? e;
-        const panel = event.target.closest('.panel');
-        const header = event.target.closest('.terminal-header');
-
-        if (!panel || !panel.classList.contains('active') || !header || panel.id === 'preview') return;
-
-        state.isDragging = true;
         state.activePanel = panel;
 
-        const containerRect = state.containerDimensions.rect;
-        state.startX = event.clientX - containerRect.left;
-        state.startY = event.clientY - containerRect.top;
+        if (panel.id && panel.id !== 'preview') {
+            updateNavLinks(panel.id);
+        }
+    }
+
+    function focusPanel(panel) {
+        if (!panel) return;
+
+        if (state.isMobile) {
+            setActivePanel(panel);
+            scrollPanelIntoMobileView(panel);
+            return;
+        }
+
+        if (!panel.classList.contains('active')) {
+            setActivePanel(panel);
+        }
+
+        if (panel.id !== 'preview') {
+            state.zIndexMax += 1;
+            panel.style.zIndex = String(state.zIndexMax);
+        }
+    }
+
+    function scrollPanelIntoMobileView(panel) {
+        const container = queryRequired(selectors.panelsContainer);
+        const top = panel.offsetTop - state.navHeight / 2;
+
+        // The nav is fixed, so the scroll target is biased upward to keep the panel title visible.
+        // Mobile layout normally scrolls the page, but retaining the container scroll keeps the
+        // behavior correct if the CSS later gives the panel container its own scrollport.
+        container.scrollTo({
+            behavior: 'smooth',
+            top,
+        });
+        window.scrollTo({
+            behavior: 'smooth',
+            top,
+        });
+    }
+
+    function updateNavLinks(activeId) {
+        for (const link of queryAll(selectors.navLink)) {
+            link.classList.toggle('active-link', link.dataset.panel === activeId);
+        }
+    }
+
+    function bindNavLinks() {
+        for (const link of queryAll(selectors.navLink)) {
+            link.addEventListener('click', (event) => {
+                event.preventDefault();
+
+                const targetId = link.dataset.panel;
+                const targetPanel = document.getElementById(targetId);
+                if (!targetPanel) return;
+
+                focusPanel(targetPanel);
+            });
+        }
+    }
+
+    function bindReferenceLinks() {
+        const referenceToPanel = new Map();
+
+        for (const reference of queryAll('sup[id^="ref-"]')) {
+            const referenceNumber = reference.id.slice('ref-'.length);
+            const panel = reference.closest(selectors.panel);
+            if (!panel) continue;
+
+            referenceToPanel.set(referenceNumber, panel.id);
+            reference.addEventListener('click', (event) => {
+                event.preventDefault();
+
+                const backReference = document.getElementById(`back-ref-${referenceNumber}`);
+                activateReference('refs', backReference);
+            });
+        }
+
+        const refsPanel = document.getElementById('refs');
+        if (!refsPanel) return;
+
+        for (const backReference of queryAll('sup[id^="back-ref-"]', refsPanel)) {
+            backReference.addEventListener('click', (event) => {
+                event.preventDefault();
+
+                const referenceNumber = backReference.id.slice('back-ref-'.length);
+                const targetId = referenceToPanel.get(referenceNumber);
+                const originalReference = document.getElementById(`ref-${referenceNumber}`);
+
+                activateReference(targetId, originalReference);
+            });
+        }
+    }
+
+    function activateReference(targetId, highlightElement) {
+        const targetPanel = document.getElementById(targetId);
+        if (!targetPanel) return;
+
+        focusPanel(targetPanel);
+        highlightTemporary(highlightElement);
+
+        if (state.isMobile && highlightElement) {
+            window.setTimeout(() => {
+                highlightElement.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'center',
+                });
+            }, RESIZE_DEBOUNCE_MS);
+        }
+    }
+
+    function highlightTemporary(element) {
+        if (!element) return;
+
+        element.classList.add('highlight');
+        window.setTimeout(() => {
+            element.classList.remove('highlight');
+        }, HIGHLIGHT_MS);
+    }
+
+    function bindDragging() {
+        if (state.isMobile) return;
+
+        document.addEventListener('mousedown', startDrag);
+        document.addEventListener('mousemove', queueDrag);
+        document.addEventListener('mouseup', stopDrag);
+        document.addEventListener('mouseleave', stopDrag);
+        document.addEventListener('touchstart', startDrag, { passive: false });
+        document.addEventListener('touchmove', queueDrag, { passive: false });
+        document.addEventListener('touchend', stopDrag);
+        document.addEventListener('touchcancel', stopDrag);
+    }
+
+    function startDrag(event) {
+        const pointer = getPointer(event);
+        const panel = pointer.target.closest(selectors.panel);
+        const header = pointer.target.closest(selectors.terminalHeader);
+
+        if (!panel) return;
+        if (!header) return;
+        if (panel.id === 'preview') return;
+
+        if (!panel.classList.contains('active')) {
+            focusPanel(panel);
+            return;
+        }
 
         const panelRect = panel.getBoundingClientRect();
-        state.initialPanelX = panelRect.left - containerRect.left;
-        state.initialPanelY = panelRect.top - containerRect.top;
+
+        state.drag.isActive = true;
+        state.drag.panel = panel;
+        state.drag.pointerX = pointer.clientX;
+        state.drag.pointerY = pointer.clientY;
+        state.drag.startX = pointer.clientX;
+        state.drag.startY = pointer.clientY;
+        state.drag.startPanelX = panelRect.left - state.containerRect.left;
+        state.drag.startPanelY = panelRect.top - state.containerRect.top;
 
         panel.classList.add('dragging');
     }
 
-    const stopDragging = () => {
-        if (!state.isDragging) return;
-        state.isDragging = false;
-        if (state.activePanel) {
-            state.activePanel.dragBounds = null;
-            state.activePanel.classList.remove('dragging');
+    function queueDrag(event) {
+        if (!state.drag.isActive) return;
+
+        event.preventDefault();
+
+        const pointer = getPointer(event);
+        state.drag.pointerX = pointer.clientX;
+        state.drag.pointerY = pointer.clientY;
+
+        // Pointer events can arrive faster than the display refresh rate. One animation frame keeps
+        // dragging smooth while preventing redundant style writes.
+        if (state.drag.frame === 0) {
+            state.drag.frame = window.requestAnimationFrame(applyDrag);
         }
     }
 
-    const drag = (e) => {
-        if (!state.isDragging || !state.activePanel) return;
-        e.preventDefault();
+    function applyDrag() {
+        state.drag.frame = 0;
 
-        // smoother refresh-rate based movement with requestAnimationFrame
-        requestAnimationFrame(() => {
-            const event = e.touches?.[0] ?? e;
-            const containerRect = state.containerDimensions.rect;
+        const panel = state.drag.panel;
+        if (!state.drag.isActive || !panel) return;
 
-            // relative to container
-            const currentX = event.clientX - containerRect.left;
-            const currentY = event.clientY - containerRect.top;
+        const deltaX = state.drag.pointerX - state.drag.startX;
+        const deltaY = state.drag.pointerY - state.drag.startY;
+        const x = state.drag.startPanelX + deltaX;
+        const y = state.drag.startPanelY + deltaY;
+        const bounds = state.panelBounds.get(panel);
 
-            const dx = currentX - state.startX;
-            const dy = currentY - state.startY;
-
-            const x = state.initialPanelX + dx;
-            const y = state.initialPanelY + dy;
-
-            const bounds = state.panelBounds.get(state.activePanel);
-            if (bounds) {
-                updatePanelPosition(state.activePanel, x, y, bounds);
-            }
-        });
+        if (bounds) {
+            setPanelPosition(panel, x, y, bounds);
+        }
     }
 
-    document.addEventListener('mousedown', startDragging);
-    document.addEventListener('mousemove', drag);
-    document.addEventListener('mouseup', stopDragging);
-    document.addEventListener('mouseleave', stopDragging);
-    document.addEventListener('touchstart', startDragging, { passive: false });
-    document.addEventListener('touchmove', drag, { passive: false });
-    document.addEventListener('touchend', stopDragging);
-    document.addEventListener('touchcancel', stopDragging);
-}
+    function stopDrag() {
+        if (!state.drag.isActive) return;
 
-function updatePanelPosition(panel, x, y, bounds) {
-    const boundedX = Math.max(bounds.minX, Math.min(bounds.maxX, x));
-    const boundedY = Math.max(bounds.minY, Math.min(bounds.maxY, y));
+        if (state.drag.frame !== 0) {
+            window.cancelAnimationFrame(state.drag.frame);
+        }
 
-    const terminalWindow = panel.querySelector('.terminal-window');
-    const terminalRect = terminalWindow.getBoundingClientRect();
+        if (state.drag.panel) {
+            state.drag.panel.classList.remove('dragging');
+        }
 
-    panel.style.width = `${terminalRect.width}px`;
-    panel.style.height = `${terminalRect.height}px`;
+        state.drag.frame = 0;
+        state.drag.isActive = false;
+        state.drag.panel = null;
+    }
 
-    panel.style.transform = `translate(${boundedX}px, ${boundedY}px)`;
-    panel.style.position = 'absolute';
-    panel.style.left = '0';
-    panel.style.top = '0';
-}
+    function setPanelPosition(panel, x, y, bounds) {
+        const boundedX = Math.max(bounds.minX, Math.min(bounds.maxX, x));
+        const boundedY = Math.max(bounds.minY, Math.min(bounds.maxY, y));
+        const terminalWindow = queryRequired(selectors.terminalWindow, panel);
+        const terminalRect = terminalWindow.getBoundingClientRect();
 
-function createPreviewPanel() {
-    const panel = document.createElement('div');
-    panel.className = 'panel';
-    panel.id = 'preview';
-    panel.popover = 'auto';
-    panel.innerHTML = `
-    <div class="terminal-window">
-      <header class="terminal-header">
-        <h4>web preview ${state.isMobile ? "(tap outside to dismiss)" : "(press Esc to dismiss or click outside)"}</h4>
-      </header>
-      <section class="terminal-content">
-        <div class="preview-container">
-          <iframe frameborder="0" loading="lazy"></iframe>
-        </div>
-      </section>
-    </div>
-    `;
-    document.querySelector('.panels-container').appendChild(panel);
-    return panel;
-}
+        // Once a panel has been moved, freeze its rendered size. Otherwise responsive width rules
+        // can reflow the panel while the user drags it, which makes the pointer feel detached.
+        panel.style.height = `${terminalRect.height}px`;
+        panel.style.left = '0';
+        panel.style.position = 'absolute';
+        panel.style.top = '0';
+        panel.style.transform = `translate(${boundedX}px, ${boundedY}px)`;
+        panel.style.width = `${terminalRect.width}px`;
+    }
 
-function showPreview(url, source) {
-    state.sourcePanel = source;
-    if (!state.previewPanel) state.previewPanel = createPreviewPanel();
+    function createPreviewPanel() {
+        const panel = document.createElement('div');
+        const hint = state.isMobile
+            ? 'tap outside to dismiss'
+            : 'press Esc to dismiss or click outside';
 
-    const iframe = state.previewPanel.querySelector('iframe');
-    iframe.src = url;
+        panel.className = 'panel';
+        panel.id = 'preview';
+        panel.popover = 'auto';
+        panel.innerHTML = `
+            <div class="terminal-window">
+                <header class="terminal-header">
+                    <h4>web preview (${hint})</h4>
+                </header>
+                <section class="terminal-content">
+                    <div class="preview-container">
+                        <iframe frameborder="0" loading="lazy"></iframe>
+                    </div>
+                </section>
+            </div>
+        `;
 
-    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-    state.previewPanel.classList.add('active');
-    state.previewPanel.style.zIndex = state.previewZIndex;
+        queryRequired(selectors.panelsContainer).appendChild(panel);
 
-    // Show popover
-    state.previewPanel.showPopover();
+        return panel;
+    }
 
-    // Handle popover hiding
-    state.previewPanel.addEventListener('beforetoggle', (e) => {
-        if (e.newState === 'closed') {
-            state.previewPanel.remove();
-            state.previewPanel = null;
+    function bindPreviewLinks() {
+        for (const link of queryAll(selectors.previewLink)) {
+            link.addEventListener('click', (event) => {
+                event.preventDefault();
 
-            if (state.sourcePanel) {
-                document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-                state.sourcePanel.classList.add('active');
-                state.activePanel = state.sourcePanel;
-                updateNavLinks(state.sourcePanel.id);
+                showPreview(link.href, link.closest(selectors.panel));
+            });
+        }
+    }
+
+    function showPreview(url, sourcePanel) {
+        state.previewSourcePanel = sourcePanel;
+
+        if (!state.previewPanel) {
+            state.previewPanel = createPreviewPanel();
+        }
+
+        const iframe = queryRequired('iframe', state.previewPanel);
+        iframe.src = url;
+
+        setActivePanel(state.previewPanel);
+        state.zIndexMax += 1;
+        state.previewPanel.style.zIndex = String(state.zIndexMax);
+
+        state.previewPanel.removeEventListener('beforetoggle', restorePreviewSource);
+        state.previewPanel.addEventListener('beforetoggle', restorePreviewSource);
+
+        if (typeof state.previewPanel.showPopover === 'function') {
+            state.previewPanel.showPopover();
+        }
+    }
+
+    function restorePreviewSource(event) {
+        if (event.newState !== 'closed') return;
+
+        const previewPanel = state.previewPanel;
+        previewPanel.removeEventListener('beforetoggle', restorePreviewSource);
+        previewPanel.remove();
+        state.previewPanel = null;
+
+        if (state.previewSourcePanel) {
+            setActivePanel(state.previewSourcePanel);
+        }
+    }
+
+    function bindTabs() {
+        for (const panel of getPanels()) {
+            const buttons = queryAll(selectors.tabButton, panel);
+            if (buttons.length === 0) continue;
+
+            selectTab(panel, buttons[0].dataset.tab);
+
+            for (const button of buttons) {
+                button.addEventListener('click', () => {
+                    selectTab(panel, button.dataset.tab);
+                });
             }
         }
-    }, { once: true });
-}
 
-// tab management
-function tabHandler(tabButtons, tabs) {
-    const defaultTab = tabButtons[0].dataset.tab;
+        document.addEventListener('keydown', switchActivePanelTabWithKeyboard);
+    }
 
-    tabs.forEach(tab => { tab.classList.toggle('tab-active', tab.id.split('-')[1] === defaultTab); });
+    function switchActivePanelTabWithKeyboard(event) {
+        if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
 
-    tabButtons.forEach(button => {
-        button.classList.toggle('tab-active', button.dataset.tab === defaultTab);
-
-        button.addEventListener('click', () => {
-            const tabName = button.dataset.tab;
-            switchTab(tabButtons, tabs, tabName);
-        });
-    });
-
-    document.addEventListener('keydown', (e) => {
-        if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
-
-        const activePanel = document.querySelector('.panel.active');
+        const activePanel = document.querySelector(selectors.activePanel);
         if (!activePanel) return;
 
-        const activeTabButton = activePanel.querySelector('.tab-button.tab-active');
-        if (!activeTabButton) return;
+        const buttons = queryAll(selectors.tabButton, activePanel);
+        if (buttons.length === 0) return;
 
-        const tabsList = [...activePanel.querySelectorAll('.tab-button')];
-        const currentIndex = tabsList.indexOf(activeTabButton);
-        const direction = e.key === 'ArrowLeft' ? -1 : 1;
-        const newIndex = (currentIndex + direction + tabsList.length) % tabsList.length;
+        const activeButton = activePanel.querySelector(`${selectors.tabButton}.tab-active`);
+        const activeIndex = buttons.indexOf(activeButton);
+        if (activeIndex < 0) return;
 
-        const newTab = tabsList[newIndex].dataset.tab;
-        switchTab(tabButtons, tabs, newTab);
-    });
-}
+        const direction = event.key === 'ArrowLeft' ? -1 : 1;
+        const nextIndex = (activeIndex + direction + buttons.length) % buttons.length;
 
-function switchTab(tabButtons, tabs, tabName) {
-    tabButtons.forEach(btn => btn.classList.toggle('tab-active', btn.dataset.tab === tabName));
-    tabs.forEach(tab => tab.classList.toggle('tab-active', tab.id.split('-')[1] === tabName));
-
-    const panel = tabButtons[0].closest('.panel');
-    if (!panel || panel.id === 'preview') return;
-
-    setTimeout(() => {
-        const bounds = calculatePanelBounds(panel);
-        state.panelBounds.set(panel, bounds);
-    }, 1000);
-}
-
-function swipeHandler() {
-    if (!state.isMobile) return;
-
-    const panels = document.querySelectorAll('.panel');
-
-    panels.forEach(panel => {
-        const tabContainer = panel.querySelector('.terminal-tabs');
-        if (!tabContainer) return;
-
-        let touchStartX = 0;
-        let touchEndX = 0;
-
-        const handleSwipe = () => {
-            const swipeThreshold = 50;
-            const swipeDistance = touchEndX - touchStartX;
-
-            if (Math.abs(swipeDistance) < swipeThreshold) return;
-
-            const tabs = [...tabContainer.querySelectorAll('.tab-button')];
-            const activeTab = tabContainer.querySelector('.tab-button.tab-active');
-            const currentIndex = tabs.indexOf(activeTab);
-
-            const direction = swipeDistance > 0 ? -1 : 1;
-            const newIndex = (currentIndex + direction + tabs.length) % tabs.length;
-
-            tabs[newIndex].click();
-        };
-
-        panel.addEventListener('touchstart', (e) => {
-            touchStartX = e.touches[0].clientX;
-        }, { passive: true });
-
-        panel.addEventListener('touchend', (e) => {
-            touchEndX = e.changedTouches[0].clientX;
-            handleSwipe();
-        }, { passive: true });
-    });
-}
-
-// view initialization
-function getMobileMessage(elementId) {
-    const [panelId, messageNum] = elementId.split('-message-');
-    
-    switch (panelId) {
-        case 'welcome':
-            return `on mobile you may scroll to focus the windows.
-            toggle the theme by clicking the button below the 'projects' link.`;
-        case 'about':
-            switch (messageNum) {
-                case '1':
-                    return `try clicking the tabs or swiping left or right on this window to switch between them.`;
-                case '2':
-                    return `touch the image...`;
-                default:
-                    return '';
-            }
-        default:
-            return '';
+        selectTab(activePanel, buttons[nextIndex].dataset.tab);
     }
-}
 
-function setupMobileView(elements) {
-    elements.deviceMessages.forEach(message => { message.textContent = getMobileMessage(message.id); });
-
-    const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.target.id === 'preview') return;
-            if (entry.isIntersecting && entry.intersectionRatio >= 0.93) {
-                const panel = entry.target;
-                elements.panels.forEach(p => p.classList.remove('active'));
-                panel.classList.add('active');
-                updateNavLinks(panel.id);
-            }
-        });
-    }, {
-        threshold: [0.93],
-        rootMargin: '-5% 0px'
-    });
-
-    elements.panels.forEach(panel => {
-        if (panel.id !== 'preview') observer.observe(panel);
-    });
-
-    // handle tooltips
-    document.querySelectorAll("abbr[title]").forEach((abbr) => {
-        let tooltip = null;
-        let dismissTimeout = null;
-
-        const dismissTooltip = () => {
-            if (tooltip) {
-                clearTimeout(dismissTimeout);
-                tooltip.remove();
-                tooltip = null;
-            }
-        };
-
-        const showTooltip = (e) => {
-            e.preventDefault();
-
-            dismissTooltip();
-
-            tooltip = document.createElement("div");
-            tooltip.textContent = abbr.getAttribute("title");
-            document.body.appendChild(tooltip);
-
-            tooltip.style.position = "absolute";
-            tooltip.style.maxWidth = "min(16rem, 80vw)";
-            tooltip.style.whiteSpace = "normal";
-            tooltip.style.overflowWrap = "break-word";
-            tooltip.style.zIndex = "100";
-            tooltip.style.backgroundColor = "var(--text-color)";
-            tooltip.style.color = "var(--bg-color)";
-            tooltip.style.borderRadius = "0.25rem";
-            tooltip.style.boxShadow = "0.0625rem 0.0625rem 0.3125rem 0rem var(--shadow-color)";
-            tooltip.style.fontSize = "0.75rem";
-            tooltip.style.padding = "0.125rem 0.25rem";
-            tooltip.style.opacity = "0";
-            tooltip.style.transition = "opacity 0.2s ease-in-out";
-            tooltip.style.pointerEvents = "none";
-            tooltip.style.transform = 'translateX(0)';
-
-            const rect = abbr.getBoundingClientRect();
-            const tooltipRect = tooltip.getBoundingClientRect();
-            const viewportPadding = 8;
-            const touchX = e.touches[0].clientX;
-            const viewportCenter = window.innerWidth / 2;
-
-            let left = rect.left + (rect.width - tooltipRect.width) / 2;
-            left = Math.max(viewportPadding, Math.min(left, window.innerWidth - tooltipRect.width - viewportPadding));
-            
-            if (touchX < viewportCenter) {
-                // align tooltip to left side
-                left = Math.max(viewportPadding, rect.left + window.scrollX);
-            } else {
-                // align tooltip to right side
-                left = Math.min(
-                    window.innerWidth - tooltipRect.width - viewportPadding,
-                    rect.right + window.scrollX - tooltipRect.width
-                );
-            }
-        
-            let top = rect.top + window.scrollY - tooltipRect.height - 8;
-            // show below if not enough space
-            if (top < window.scrollY + viewportPadding) top = rect.bottom + window.scrollY + 8;
-            
-            tooltip.style.left = `${left}px`;
-            tooltip.style.top = `${top}px`;
-            tooltip.style.opacity = "1";
-
-            dismissTimeout = setTimeout(dismissTooltip, 3000);
-
-            const handleTouchOutside = (e) => {
-                if (!abbr.contains(e.target)) {
-                    dismissTooltip();
-                    document.removeEventListener("touchstart", handleTouchOutside);
-                }
-            };
-    
-            document.addEventListener("touchstart", handleTouchOutside);
+    function selectTab(panel, tabName) {
+        for (const button of queryAll(selectors.tabButton, panel)) {
+            button.classList.toggle('tab-active', button.dataset.tab === tabName);
         }
 
-        abbr.addEventListener("touchstart", showTooltip);
-    });
-}
+        for (const tab of queryAll(selectors.tab, panel)) {
+            tab.classList.toggle('tab-active', tab.id === `${panel.id}-${tabName}`);
+        }
 
-function getDesktopMessage(elementId) {
-    const [panelId, messageNum] = elementId.split('-message-');
-    
-    switch (panelId) {
-        case 'welcome':
-            return `on desktop or tablets you may click or touch the windows to bring them into focus.
-            you may also drag the active window around by dragging it's title bar.
-            toggle the theme by clicking the button on the top right.`;
-        case 'about':
-            switch (messageNum) {
-                case '1':
-                    return `try clicking or using the arrow keys to switch between tabs.`;
-                case '2':
-                    return `hover the image...`;
-                default:
-                    return '';
+        // Tab content can change panel dimensions, so drag bounds are refreshed after
+        // layout settles.
+        window.setTimeout(() => {
+            if (panel.id !== 'preview') {
+                state.panelBounds.set(panel, getPanelBounds(panel));
             }
-        default:
-            return '';
+        }, RESIZE_DEBOUNCE_MS);
     }
-}
 
-function setupDesktopView(elements) {
-    elements.deviceMessages.forEach(message => { message.textContent = getDesktopMessage(message.id); });
+    function bindSwipes() {
+        if (!state.isMobile) return;
 
-    elements.panels.forEach(panel => {
-        panel.addEventListener('mousedown', (e) => {
-            if (e.target.closest('.terminal-header')) return;
-            focusPanel(panel);
+        for (const panel of getPanels()) {
+            const tabGroup = panel.querySelector(selectors.tabGroup);
+            if (!tabGroup) continue;
+
+            let touchStartX = 0;
+
+            panel.addEventListener('touchstart', (event) => {
+                touchStartX = event.touches[0].clientX;
+            }, { passive: true });
+
+            panel.addEventListener('touchend', (event) => {
+                const touchEndX = event.changedTouches[0].clientX;
+                activateSwipedTab(tabGroup, touchEndX - touchStartX);
+            }, { passive: true });
+        }
+    }
+
+    function activateSwipedTab(tabGroup, swipeDistance) {
+        if (Math.abs(swipeDistance) < SWIPE_THRESHOLD_PX) return;
+
+        const buttons = queryAll(selectors.tabButton, tabGroup);
+        const activeButton = tabGroup.querySelector(`${selectors.tabButton}.tab-active`);
+        const activeIndex = buttons.indexOf(activeButton);
+        if (activeIndex < 0) return;
+
+        const direction = swipeDistance > 0 ? -1 : 1;
+        const nextIndex = (activeIndex + direction + buttons.length) % buttons.length;
+
+        buttons[nextIndex].click();
+    }
+
+    function bindThemeToggle() {
+        const toggle = document.querySelector(selectors.themeToggle);
+        if (!toggle) return;
+
+        toggle.addEventListener('click', () => {
+            const currentScheme = document.documentElement.style.colorScheme;
+            const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            const currentIsDark = currentScheme === 'dark' || (!currentScheme && systemPrefersDark);
+
+            document.documentElement.style.colorScheme = currentIsDark ? 'light' : 'dark';
         });
-    });
-}
+    }
 
-document.addEventListener('DOMContentLoaded', () => {
-    state.lastZIndex = document.querySelectorAll('.panel').length;
+    function getDeviceMessage(elementId) {
+        const [panelId, messageNumber] = elementId.split('-message-');
+        const messages = state.isMobile ? mobileMessages : desktopMessages;
 
-    const elements = {
-        navLinks: document.querySelectorAll('nav a'),
-        panels: document.querySelectorAll('.panel'),
-        tabButtons: document.querySelectorAll('.tab-button'),
-        tabs: document.querySelectorAll('.terminal-tab'),
-        deviceMessages: document.querySelectorAll('.device-specific-message'),
+        return messages[panelId]?.[messageNumber] ?? '';
+    }
+
+    const mobileMessages = {
+        about: {
+            1: 'try clicking the tabs or swiping left or right on this window to switch ' +
+                'between them.',
+            2: 'touch the image...',
+        },
+        welcome: {
+            1: `on mobile you may scroll to focus the windows.
+            toggle the theme by clicking the button below the 'projects' link.`,
+        },
     };
 
-    // event listeners for nav links
-    elements.navLinks.forEach(link => {
-        link.addEventListener('click', (e) => {
-            e.preventDefault();
-            const targetId = e.target.dataset.panel;
-            const targetPanel = document.getElementById(targetId);
-            if (targetPanel) {
-                if (state.isMobile) {
-                    const navHeight = document.querySelector('nav').offsetHeight;
-                    window.scrollTo({
-                        top: targetPanel.offsetTop - navHeight / 2,
-                        behavior: 'smooth'
-                    });
-                    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-                    targetPanel.classList.add('active');
-                    updateNavLinks(targetId);
-                } else {
-                    focusPanel(targetPanel);
-                }
-            }
-        });
-    });
+    const desktopMessages = {
+        about: {
+            1: 'try clicking or using the arrow keys to switch between tabs.',
+            2: 'hover the image...',
+        },
+        welcome: {
+            1: `on desktop or tablets you may click or touch the windows to bring them into focus.
+            you may also drag the active window around by dragging its title bar.
+            toggle the theme by clicking the button on the top right.`,
+        },
+    };
 
-    // event listener for preview links
-    document.querySelectorAll('a[data-preview="true"]').forEach(link => {
-        link.addEventListener('click', (e) => {
-            e.preventDefault();
-            showPreview(link.href, e.target.closest('.panel'));
-        });
-    });
-
-    // toggle theme button
-    document.getElementById('toggle-theme')?.addEventListener('click', () => {
-        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        const prefersLight = window.matchMedia('(prefers-color-scheme: light)').matches;
-
-        if (prefersDark && document.documentElement.style.colorScheme !== "light") {
-            document.documentElement.style.colorScheme = "light";
-        } else if (prefersLight && document.documentElement.style.colorScheme !== "dark") {
-            document.documentElement.style.colorScheme = "dark";
-        } else if (document.documentElement.style.colorScheme === "light") {
-            document.documentElement.style.colorScheme = "dark";
-        } else {
-            document.documentElement.style.colorScheme = "light";
+    function setDeviceMessages() {
+        for (const message of queryAll(selectors.deviceMessage)) {
+            message.textContent = getDeviceMessage(message.id);
         }
-    });
-
-    refLinkHandler();
-    tabHandler(elements.tabButtons, elements.tabs);
-
-    if (state.isMobile) {
-        setupMobileView(elements);
-        swipeHandler();
-    } else {
-        setupDesktopView(elements);
-        dragHandler();
-        focusPanel(document.getElementById('welcome'), 'welcome');
     }
 
-    // rects have their proper shape by then
-    calculateDimensions();
-});
+    function bindMobilePanelObserver() {
+        if (!state.isMobile) return;
+
+        const observer = new IntersectionObserver((entries) => {
+            for (const entry of entries) {
+                if (entry.target.id === 'preview') continue;
+                if (!entry.isIntersecting) continue;
+                if (entry.intersectionRatio < 0.93) continue;
+
+                setActivePanel(entry.target);
+            }
+        }, {
+            rootMargin: '-5% 0px',
+            threshold: [0.93],
+        });
+
+        for (const panel of getInteractivePanels()) {
+            observer.observe(panel);
+        }
+    }
+
+    function bindDesktopPanelFocus() {
+        if (state.isMobile) return;
+
+        for (const panel of getInteractivePanels()) {
+            panel.addEventListener('mousedown', (event) => {
+                if (event.target.closest(selectors.terminalHeader)) return;
+                focusPanel(panel);
+            });
+        }
+    }
+
+    function bindMobileTooltips() {
+        if (!state.isMobile) return;
+
+        for (const abbr of queryAll('abbr[title]')) {
+            let tooltip = null;
+            let dismissTimeout = 0;
+
+            const dismissTooltip = () => {
+                if (!tooltip) return;
+
+                window.clearTimeout(dismissTimeout);
+                tooltip.remove();
+                tooltip = null;
+            };
+
+            abbr.addEventListener('touchstart', (event) => {
+                event.preventDefault();
+                dismissTooltip();
+
+                tooltip = createTooltip(abbr.getAttribute('title'));
+                positionTooltip(tooltip, abbr, event.touches[0].clientX);
+
+                dismissTimeout = window.setTimeout(dismissTooltip, TOOLTIP_DISMISS_MS);
+
+                const dismissOnOutsideTouch = (outsideEvent) => {
+                    if (abbr.contains(outsideEvent.target)) return;
+
+                    dismissTooltip();
+                    document.removeEventListener('touchstart', dismissOnOutsideTouch);
+                };
+
+                document.addEventListener('touchstart', dismissOnOutsideTouch);
+            });
+        }
+    }
+
+    function createTooltip(text) {
+        const tooltip = document.createElement('div');
+        tooltip.textContent = text;
+
+        Object.assign(tooltip.style, {
+            backgroundColor: 'var(--text-color)',
+            borderRadius: '0.25rem',
+            boxShadow: '0.0625rem 0.0625rem 0.3125rem 0rem var(--shadow-color)',
+            color: 'var(--bg-color)',
+            fontSize: '0.75rem',
+            maxWidth: 'min(16rem, 80vw)',
+            opacity: '0',
+            overflowWrap: 'break-word',
+            padding: '0.125rem 0.25rem',
+            pointerEvents: 'none',
+            position: 'absolute',
+            transition: 'opacity 0.2s ease-in-out',
+            transform: 'translateX(0)',
+            whiteSpace: 'normal',
+            zIndex: '100',
+        });
+
+        document.body.appendChild(tooltip);
+
+        return tooltip;
+    }
+
+    function positionTooltip(tooltip, target, touchX) {
+        const rect = target.getBoundingClientRect();
+        const tooltipRect = tooltip.getBoundingClientRect();
+        const viewportPadding = 8;
+        const viewportCenter = window.innerWidth / 2;
+
+        let left = rect.left + (rect.width - tooltipRect.width) / 2;
+        left = clamp(
+            left,
+            viewportPadding,
+            window.innerWidth - tooltipRect.width - viewportPadding,
+        );
+
+        // Touch users often hide the trigger with their finger. Biasing toward the touched side
+        // keeps the tooltip readable without requiring a second interaction.
+        if (touchX < viewportCenter) {
+            left = Math.max(viewportPadding, rect.left + window.scrollX);
+        } else {
+            left = Math.min(
+                window.innerWidth - tooltipRect.width - viewportPadding,
+                rect.right + window.scrollX - tooltipRect.width,
+            );
+        }
+
+        let top = rect.top + window.scrollY - tooltipRect.height - 8;
+        if (top < window.scrollY + viewportPadding) {
+            top = rect.bottom + window.scrollY + 8;
+        }
+
+        tooltip.style.left = `${left}px`;
+        tooltip.style.top = `${top}px`;
+        tooltip.style.opacity = '1';
+    }
+
+    function clamp(value, min, max) {
+        return Math.max(min, Math.min(max, value));
+    }
+
+    function init() {
+        refreshZIndexMax();
+        bindLayoutMeasurements();
+        bindNavLinks();
+        bindPreviewLinks();
+        bindReferenceLinks();
+        bindTabs();
+        bindThemeToggle();
+        setDeviceMessages();
+        bindSwipes();
+        bindMobilePanelObserver();
+        bindMobileTooltips();
+        bindDesktopPanelFocus();
+        bindDragging();
+
+        if (!state.isMobile) {
+            focusPanel(document.getElementById('welcome'));
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', init);
+}());
