@@ -3,6 +3,11 @@
 
     const POSTS_MANIFEST_URL = 'blog/posts.json';
     const POST_FILENAME_PATTERN = /^[a-z0-9][a-z0-9_-]*\.md$/i;
+    const SHIKI_CDN_URL = 'https://esm.sh/shiki@3.0.0';
+    const SHIKI_THEMES = {
+        light: 'github-light',
+        dark: 'github-dark',
+    };
     const TAG_COLOR_COUNT = 5;
     const dateFormatter = new Intl.DateTimeFormat('en', {
         day: 'numeric',
@@ -48,6 +53,7 @@
 
     /** @type {Map<string, BlogPost>} */
     const postsBySlug = new Map();
+    let shikiModulePromise;
 
     /**
      * Finds a required element and explains which selector is missing.
@@ -572,6 +578,64 @@
     }
 
     /**
+     * Loads Shiki once, then reuses its cached highlighter for every code block.
+     *
+     * @returns {Promise<{codeToHtml: Function}>}
+     */
+    function loadShiki() {
+        shikiModulePromise ??= import(SHIKI_CDN_URL);
+        return shikiModulePromise;
+    }
+
+    /**
+     * Replaces Markdown code blocks with syntax-highlighted Shiki output.
+     *
+     * The original escaped code remains readable when the CDN is unavailable.
+     *
+     * @param {Element} root Rendered Markdown container.
+     * @returns {Promise<void>}
+     */
+    async function highlightCodeBlocks(root) {
+        const codeBlocks = [...root.querySelectorAll('pre > code')];
+        if (codeBlocks.length === 0) return;
+
+        try {
+            const { codeToHtml } = await loadShiki();
+
+            await Promise.all(codeBlocks.map(async (codeBlock) => {
+                const languageClass = [...codeBlock.classList]
+                    .find((className) => className.startsWith('language-'));
+                const language = languageClass?.slice('language-'.length) || 'text';
+                let highlightedHtml;
+
+                try {
+                    highlightedHtml = await codeToHtml(codeBlock.textContent, {
+                        lang: language,
+                        themes: SHIKI_THEMES,
+                    });
+                } catch (_unknownLanguageError) {
+                    highlightedHtml = await codeToHtml(codeBlock.textContent, {
+                        lang: 'text',
+                        themes: SHIKI_THEMES,
+                    });
+                }
+
+                const template = document.createElement('template');
+                // Shiki returns a complete, escaped <pre class="shiki"> element.
+                template.innerHTML = highlightedHtml;
+                const highlightedBlock = template.content.firstElementChild;
+                const originalBlock = codeBlock.parentElement;
+
+                if (highlightedBlock && originalBlock) {
+                    originalBlock.replaceWith(highlightedBlock);
+                }
+            }));
+        } catch (error) {
+            console.warn('Syntax highlighting could not be loaded.', error);
+        }
+    }
+
+    /**
      * Scrolls the blog's inner content area without moving the page viewport.
      *
      * @param {string} headingId Generated heading anchor.
@@ -631,6 +695,7 @@
         renderTableOfContents(fragment, post.headings);
 
         postContainer.replaceChildren(fragment);
+        void highlightCodeBlocks(queryRequired(selectors.markdownBody, postContainer));
         index.hidden = true;
         postContainer.hidden = false;
         document.title = `${post.title} // lyt blog`;

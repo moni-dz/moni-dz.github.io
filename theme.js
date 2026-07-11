@@ -34,6 +34,7 @@
         const nextScheme = scheme === 'dark' ? 'light' : 'dark';
 
         document.documentElement.style.colorScheme = scheme;
+        document.documentElement.dataset.theme = scheme;
         toggle.setAttribute('aria-label', `Switch to ${nextScheme} theme`);
         toggle.setAttribute('aria-pressed', String(scheme === 'dark'));
     }
