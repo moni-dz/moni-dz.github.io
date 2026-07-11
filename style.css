@@ -16,7 +16,7 @@
 
 @media (max-width: 31.25rem) {
     :root {
-        --nav-height: 5.688rem;
+        --nav-height: 7.25rem;
     }
 }
 
@@ -788,8 +788,8 @@ sup.highlight {
         right: 0;
         bottom: 0;
         width: 100% !important;
-        margin-top: 6rem;
-        height: calc(100vh - 6rem);
+        margin-top: var(--nav-height);
+        height: calc(100vh - var(--nav-height));
         transform: none;
     }
 

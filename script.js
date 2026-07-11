@@ -6,10 +6,7 @@
     const HIGHLIGHT_MS = 2000;
     const TOOLTIP_DISMISS_MS = 3000;
     const SWIPE_THRESHOLD_PX = 50;
-    const THEME_STORAGE_KEY = 'portfolio-color-scheme';
     const IMAGE_FILE_PATTERN = /\.(?:avif|gif|jpe?g|png|svg|webp)$/i;
-
-    /** @typedef {'dark' | 'light'} ColorScheme */
 
     /**
      * @typedef {object} PanelBounds
@@ -33,7 +30,6 @@
         tabGroup: '.terminal-tabs',
         terminalHeader: '.terminal-header',
         terminalWindow: '.terminal-window',
-        themeToggle: '#toggle-theme',
     };
 
     const state = {
@@ -651,58 +647,6 @@
         buttons[nextIndex].click();
     }
 
-    function bindThemeToggle() {
-        const toggle = document.querySelector(selectors.themeToggle);
-        if (!toggle) return;
-
-        applyTheme(getPreferredTheme(), toggle);
-
-        toggle.addEventListener('click', () => {
-            const currentScheme = document.documentElement.style.colorScheme;
-            const nextScheme = currentScheme === 'dark' ? 'light' : 'dark';
-
-            applyTheme(nextScheme, toggle);
-
-            try {
-                window.localStorage.setItem(THEME_STORAGE_KEY, nextScheme);
-            } catch (error) {
-                console.warn('Theme preference could not be saved.', error);
-            }
-        });
-    }
-
-    /**
-     * Gets a saved color scheme, falling back to the operating system preference.
-     *
-     * @returns {ColorScheme}
-     */
-    function getPreferredTheme() {
-        try {
-            const savedTheme = window.localStorage.getItem(THEME_STORAGE_KEY);
-            if (savedTheme === 'dark' || savedTheme === 'light') {
-                return savedTheme;
-            }
-        } catch (error) {
-            console.warn('Theme preference could not be read.', error);
-        }
-
-        return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-    }
-
-    /**
-     * Applies a color scheme and updates the toggle's screen-reader description.
-     *
-     * @param {ColorScheme} scheme
-     * @param {Element} toggle
-     */
-    function applyTheme(scheme, toggle) {
-        const nextScheme = scheme === 'dark' ? 'light' : 'dark';
-
-        document.documentElement.style.colorScheme = scheme;
-        toggle.setAttribute('aria-label', `Switch to ${nextScheme} theme`);
-        toggle.setAttribute('aria-pressed', String(scheme === 'dark'));
-    }
-
     /**
      * Chooses the text inserted into a device-specific message placeholder.
      *
@@ -724,7 +668,7 @@
         },
         welcome: {
             1: `on mobile you may scroll to focus the windows.
-            toggle the theme by clicking the button below the 'projects' link.`,
+            toggle the theme by clicking the button below the navigation links.`,
         },
     };
 
@@ -908,7 +852,6 @@
         bindPreviewLinks();
         bindReferenceLinks();
         bindTabs();
-        bindThemeToggle();
         setDeviceMessages();
         bindSwipes();
         bindMobilePanelObserver();

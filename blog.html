@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <meta id="blog-description" name="description" content="Notes about software, projects, and learning from Lythe Marvin Lacre.">
+    <meta name="theme-color" content="#eeeeee" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#232323" media="(prefers-color-scheme: dark)">
+    <title>blog // lyt</title>
+    <link rel="icon" href="assets/icon.webp" type="image/webp">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        rel="preload"
+        as="style"
+        onload="this.onload=null;this.rel='stylesheet'"
+        href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;1,100;1,200;1,300;1,400;1,500;1,600;1,700&amp;display=swap"
+        crossorigin
+    >
+    <noscript>
+        <link
+            rel="stylesheet"
+            href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;1,100;1,200;1,300;1,400;1,500;1,600;1,700&amp;display=swap"
+        >
+    </noscript>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="blog.css">
+</head>
+
+<body class="blog-page">
+    <nav class="blog-page-nav" aria-label="Blog navigation">
+        <ul>
+            <li><a href="index.html">&larr; portfolio</a></li>
+        </ul>
+        <button id="toggle-theme" type="button" aria-label="Toggle color theme" aria-pressed="false">
+            <span class="theme-label">toggle light/dark mode</span>
+        </button>
+    </nav>
+
+    <main class="blog-page-main">
+        <article class="blog-page-window" aria-labelledby="blog-page-title">
+            <header class="blog-page-header">
+                <h1 id="blog-page-title">blog.md</h1>
+            </header>
+            <section class="blog-page-content">
+                <div id="blog-index">
+                    <h2>notes from the terminal</h2>
+                    <p class="blog-intro">short posts about software, projects, and things I learn along the way.</p>
+                    <p id="blog-status" role="status">loading posts...</p>
+                    <ol id="blog-post-list" class="blog-post-list" hidden></ol>
+                </div>
+                <div id="blog-post" hidden></div>
+                <noscript>
+                    <p class="blog-error">JavaScript is required to load the Markdown posts.</p>
+                </noscript>
+            </section>
+        </article>
+    </main>
+
+    <template id="blog-post-template">
+        <article class="blog-post" aria-labelledby="blog-post-heading">
+            <a class="blog-back-button" href="blog.html">&larr; all posts</a>
+            <header class="blog-post-header">
+                <p class="blog-post-meta">
+                    <time class="blog-post-date"></time>
+                    <span class="blog-post-tags"></span>
+                </p>
+                <h2 class="blog-post-title" id="blog-post-heading"></h2>
+                <p class="blog-post-summary"></p>
+            </header>
+            <div class="blog-reading-layout">
+                <nav class="blog-toc" aria-labelledby="blog-toc-heading">
+                    <h3 id="blog-toc-heading">contents</h3>
+                    <ol class="blog-toc-list"></ol>
+                </nav>
+                <div class="markdown-body"></div>
+            </div>
+        </article>
+    </template>
+
+    <script src="theme.js" defer></script>
+    <script src="blog.js" defer></script>
+</body>
+
+</html>
