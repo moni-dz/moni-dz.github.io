@@ -7,6 +7,7 @@
     const TOOLTIP_DISMISS_MS = 3000;
     const SWIPE_THRESHOLD_PX = 50;
     const THEME_STORAGE_KEY = 'portfolio-color-scheme';
+    const IMAGE_FILE_PATTERN = /\.(?:avif|gif|jpe?g|png|svg|webp)$/i;
 
     /** @typedef {'dark' | 'light'} ColorScheme */
 
@@ -24,6 +25,8 @@
         navLink: 'nav a[data-panel]',
         panel: '.panel',
         panelsContainer: '.panels-container',
+        previewContainer: '.preview-container',
+        previewHeading: '.preview-heading',
         previewLink: 'a[data-preview="true"]',
         tab: '.terminal-tab',
         tabButton: '.tab-button',
@@ -415,9 +418,6 @@
      */
     function createPreviewPanel() {
         const panel = document.createElement('div');
-        const hint = state.isMobile
-            ? 'tap outside to dismiss'
-            : 'press Esc to dismiss or click outside';
 
         panel.className = 'panel';
         panel.id = 'preview';
@@ -425,12 +425,10 @@
         panel.innerHTML = `
             <div class="terminal-window">
                 <header class="terminal-header">
-                    <h4>web preview (${hint})</h4>
+                    <h4 class="preview-heading">web preview</h4>
                 </header>
                 <section class="terminal-content">
-                    <div class="preview-container">
-                        <iframe title="Linked content preview" loading="lazy"></iframe>
-                    </div>
+                    <div class="preview-container"></div>
                 </section>
             </div>
         `;
@@ -438,6 +436,56 @@
         queryRequired(selectors.panelsContainer).appendChild(panel);
 
         return panel;
+    }
+
+    /**
+     * Checks whether a URL points to a common browser-supported image format.
+     *
+     * @param {string} url
+     * @returns {boolean}
+     */
+    function isImageUrl(url) {
+        return IMAGE_FILE_PATTERN.test(new URL(url, window.location.href).pathname);
+    }
+
+    /**
+     * Replaces the preview contents with either a naturally sized image or a full web frame.
+     *
+     * @param {HTMLDivElement} panel Preview panel.
+     * @param {string} url URL selected by the visitor.
+     */
+    function renderPreview(panel, url) {
+        const container = queryRequired(selectors.previewContainer, panel);
+        const heading = queryRequired(selectors.previewHeading, panel);
+        const hint = state.isMobile
+            ? 'tap outside to dismiss'
+            : 'press Esc to dismiss or click outside';
+
+        container.replaceChildren();
+
+        if (isImageUrl(url)) {
+            const image = document.createElement('img');
+            const pathname = new URL(url, window.location.href).pathname;
+            const filename = decodeURIComponent(pathname.split('/').pop() || 'linked image');
+
+            panel.classList.add('image-preview');
+            heading.textContent = 'image preview';
+            image.alt = `Preview of ${filename}`;
+            image.src = url;
+
+            container.appendChild(image);
+            return;
+        }
+
+        const iframe = document.createElement('iframe');
+
+        panel.classList.remove('image-preview');
+        heading.textContent = `web preview (${hint})`;
+        iframe.loading = 'lazy';
+        iframe.src = url;
+        iframe.title = 'Linked web content preview';
+
+        container.appendChild(iframe);
     }
 
     function bindPreviewLinks() {
@@ -463,8 +511,7 @@
             state.previewPanel = createPreviewPanel();
         }
 
-        const iframe = queryRequired('iframe', state.previewPanel);
-        iframe.src = url;
+        renderPreview(state.previewPanel, url);
 
         setActivePanel(state.previewPanel);
         state.zIndexMax += 1;
