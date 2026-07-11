@@ -480,7 +480,7 @@ nav ul li a.active-link:hover {
 #about {
     top: calc(15vh - 5.688rem);
     left: 1.5vw;
-    max-width: fit-content;
+    max-width: 37.5rem;
     z-index: 3;
 
     .terminal-content {
