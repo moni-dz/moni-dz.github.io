@@ -4,15 +4,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
-    <meta name="description" content="web programming">
-    <title>my portfolio</title>
+    <meta name="description" content="Lythe Marvin Lacre's terminal-inspired software development portfolio.">
+    <meta name="theme-color" content="#eeeeee" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#232323" media="(prefers-color-scheme: dark)">
+    <title>lyt // software development portfolio</title>
+    <link rel="icon" href="assets/icon.webp" type="image/webp">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
         rel="preload"
         as="style"
         onload="this.onload=null;this.rel='stylesheet'"
-        href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;1,100;1,200;1,300;1,400;1,500;1,600;1,700&display=swap"
+        href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;1,100;1,200;1,300;1,400;1,500;1,600;1,700&amp;display=swap"
         crossorigin
     >
     <link
@@ -25,31 +28,31 @@
     <noscript>
         <link
             rel="stylesheet"
-            href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;1,100;1,200;1,300;1,400;1,500;1,600;1,700&display=swap"
+            href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;1,100;1,200;1,300;1,400;1,500;1,600;1,700&amp;display=swap"
         >
     </noscript>
     <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
-    <nav>
+    <nav aria-label="Primary navigation">
         <ul>
-            <li><a href="#top" data-panel="welcome">home</a></li>
-            <li><a href="#top" data-panel="about">about</a></li>
-            <li><a href="#top" data-panel="projects">projects</a></li>
-            <li><a href="#top" data-panel="skills">skills</a></li>
-            <li><a href="#top" data-panel="refs">refs</a></li>
+            <li><a href="#welcome" data-panel="welcome" aria-current="page">home</a></li>
+            <li><a href="#about" data-panel="about">about</a></li>
+            <li><a href="#projects" data-panel="projects">projects</a></li>
+            <li><a href="#skills" data-panel="skills">skills</a></li>
+            <li><a href="#refs" data-panel="refs">refs</a></li>
         </ul>
-        <button id="toggle-theme" aria-label="Toggle theme">
+        <button id="toggle-theme" type="button" aria-label="Toggle color theme" aria-pressed="false">
             <span class="theme-label">toggle light/dark mode</span>
         </button>
     </nav>
 
-    <main class="panels-container">
-    <div class="panel" id="welcome">
+    <main class="panels-container" id="top">
+    <article class="panel" id="welcome" aria-labelledby="welcome-title">
     <div class="terminal-window">
         <header class="terminal-header">
-            <h2>home.txt</h2>
+            <h2 id="welcome-title">home.txt</h2>
         </header>
         <section class="terminal-content">
             <h3>welcome!</h3>
@@ -58,39 +61,39 @@
 
                 <span class="device-specific-message" id="welcome-message-1"></span>
 
-                this site is best viewed in a modern up-to-date browser as it uses <a href="https://web.dev/baseline">baseline</a> <a href="https://web.dev/baseline/2023">2023</a> and <a href="https://web.dev/baseline/2024">2024</a> features such as <code><a href="https://developer.mozilla.org/en-US/docs/Web/CSS/color_value/oklch">oklch()</a><sup id="ref-1">1</sup></code>, <code><a href="https://developer.mozilla.org/en-US/docs/Web/CSS/color_value/light-dark">light-dark()</a></code>, <code><a href="https://developer.mozilla.org/en-US/docs/Web/API/DedicatedWorkerGlobalScope/requestAnimationFrame">requestAnimationFrame()</a></code>, and the <a href="https://web.dev/blog/popover-api">Popover API</a>.
+                this site is best viewed in a modern up-to-date browser as it uses <a href="https://web.dev/baseline">baseline</a> <a href="https://web.dev/baseline/2023">2023</a> and <a href="https://web.dev/baseline/2024">2024</a> features such as <code><a href="https://developer.mozilla.org/en-US/docs/Web/CSS/color_value/oklch">oklch()</a><sup id="ref-1"><a href="#back-ref-1" aria-label="Open reference 1">1</a></sup></code>, <code><a href="https://developer.mozilla.org/en-US/docs/Web/CSS/color_value/light-dark">light-dark()</a></code>, <code><a href="https://developer.mozilla.org/en-US/docs/Web/API/Window/requestAnimationFrame">requestAnimationFrame()</a></code>, and the <a href="https://web.dev/blog/popover-api">Popover API</a>.
             </p>
         </section>
     </div>
-    </div>
+    </article>
 
-    <div class="panel" id="about">
+    <article class="panel" id="about" aria-labelledby="about-title">
     <div class="terminal-window">
         <header class="terminal-header">
-            <h2>about.txt</h2>
-            <div class="terminal-tabs">
-                <button class="tab-button tab-active" data-tab="site">site</button>
-                <button class="tab-button" data-tab="author">author</button>
-                <button class="tab-button" data-tab="certifications">certifications</button>
+            <h2 id="about-title">about.txt</h2>
+            <div class="terminal-tabs" role="tablist" aria-label="About sections">
+                <button class="tab-button tab-active" id="about-site-tab" type="button" role="tab" data-tab="site" aria-controls="about-site" aria-selected="true">site</button>
+                <button class="tab-button" id="about-author-tab" type="button" role="tab" data-tab="author" aria-controls="about-author" aria-selected="false" tabindex="-1">author</button>
+                <button class="tab-button" id="about-certifications-tab" type="button" role="tab" data-tab="certifications" aria-controls="about-certifications" aria-selected="false" tabindex="-1">certifications</button>
             </div>
         </header>
         <section class="terminal-content">
-            <div class="terminal-tab" id="about-site">
-                <h3>I created the site to look and feel like an old text-based windowing system<sup id="ref-2">2</sup>.</h3>
+            <div class="terminal-tab tab-active" id="about-site" role="tabpanel" aria-labelledby="about-site-tab">
+                <h3>I created this site to look and feel like an old text-based windowing system<sup id="ref-2"><a href="#back-ref-2" aria-label="Open reference 2">2</a></sup>.</h3>
                 <p>
-                    
-                    
+
+
                     the experience is akin to <abbr title="Single-page applications">SPA</abbr>s commonly seen in modern web development with frameworks like React.
-    
+
                     while web programming is <strong>not my main focus</strong>, this site aims to showcase my progress in the course.
-    
+
                     <span class="device-specific-message" id="about-message-1"></span>
                 </p>
             </div>
-            <div class="terminal-tab" id="about-author">
+            <div class="terminal-tab" id="about-author" role="tabpanel" aria-labelledby="about-author-tab" hidden>
                 <div id="about-container">
                     <aside id="about-icon-container">
-                        <img id="about-icon" src="assets/icon.webp" alt="myself">
+                        <img id="about-icon" src="assets/icon.webp" alt="Portrait of Lythe Marvin Lacre" width="320" height="320">
                         <strong><span class="device-specific-message" id="about-message-2"></span></strong>
                         <abbr title="you should hover every element like me.">also hover me...</abbr>
                     </aside>
@@ -98,22 +101,21 @@
                         <h3>hi my name is: <abbr title="Lythe Marvin L. Lacre">lyt</abbr></h3>
                         <p>
                             I am a Computer Science student at<br />Mapúa Malayan Colleges Mindanao.
-                            
-                            some important links: <a href="https://github.com/moni-dz">GitHub</a>, <a href="https://www.linkedin.com/in/dxdydz/">LinkedIn</a>
 
-                            <details>
-                                <summary>&nbsp;some details about me</summary><ul>
-                                    <li>prefers to stay out off <abbr title="there are far better people than me!">frontend</abbr></li>
-                                    <li><strong>really</strong> likes <abbr title="I enjoy performance optimizations">backend</abbr> work</li>
-                                    <li><abbr title="concepts are easily transferrable, unless they enforce certain design patterns...">knows</abbr> <abbr title="I know the &quot;ancient&quot; ones like C, Java, etc...">some</abbr> <abbr title="Rust and Zig are my &quot;modern&quot; favorites">programming</abbr> <abbr title="statically-typed and strong type systems preferred! (python and typescript are tolerated)">languages</abbr></li>
-                                    <li>applied > theoretical (in everything!)</li>
-                                </ul>
-                            </details>
+                            some important links: <a href="https://github.com/moni-dz">GitHub</a>, <a href="https://www.linkedin.com/in/dxdydz/">LinkedIn</a>
                         </p>
+                        <details>
+                            <summary>&nbsp;some details about me</summary><ul>
+                                <li>prefers to stay out of <abbr title="there are far better people than me!">frontend</abbr></li>
+                                <li><strong>really</strong> likes <abbr title="I enjoy performance optimizations">backend</abbr> work</li>
+                                <li><abbr title="concepts are easily transferable, unless they enforce certain design patterns...">knows</abbr> <abbr title="I know the &quot;ancient&quot; ones like C, Java, etc...">some</abbr> <abbr title="Rust and Zig are my &quot;modern&quot; favorites">programming</abbr> <abbr title="statically typed and strong type systems preferred! (Python and TypeScript are tolerated)">languages</abbr></li>
+                                <li>applied &gt; theoretical (in everything!)</li>
+                            </ul>
+                        </details>
                     </section>
                 </div>
             </div>
-            <div class="terminal-tab" id="about-certifications">
+            <div class="terminal-tab" id="about-certifications" role="tabpanel" aria-labelledby="about-certifications-tab" hidden>
                 <h3>certifications</h3>
                 <p>
                     I am an <a href="https://www.credly.com/badges/f2cdeeeb-2ce9-43a3-91c4-458687a65565/linked_in_profile"><b style="color: oklch(0.772 0.1738 64.55);">AWS</b> Certified AI Practitioner</a>.
@@ -121,19 +123,19 @@
             </div>
         </section>
     </div>
-    </div>
+    </article>
 
-    <div class="panel" id="projects">
+    <article class="panel" id="projects" aria-labelledby="projects-title">
     <div class="terminal-window">
         <header class="terminal-header">
-            <h2>projects.txt</h2>
+            <h2 id="projects-title">projects.txt</h2>
         </header>
         <section class="terminal-content">
             <ul class="projects-list">
-                <li><a href="https://github.com/moni-dz/it101-2-summative"><b>collectify</b> - <i>expense tracker (Java swing app)</i></a></li>
+                <li><a href="https://github.com/moni-dz/it101-2-summative"><b>collectify</b> - <i>expense tracker (Java Swing app)</i></a></li>
                 <li><a href="https://github.com/moni-dz/oop-m2"><b>cloverpass</b> - <i>movie ticketing system (Windows Forms app)</i></a></li>
                 <li><a href="https://github.com/moni-dz/keiko"><b>keiko</b> - <i>flashcards app (web app using Next.js)</i></a></li>
-                <li><a href="https://github.com/moni-dz/im-wp"><b>untitled</b> - <i>mgmt. system for LML Engineering Solutions</i></a></li>
+                <li><a href="https://github.com/moni-dz/im-wp"><b>untitled</b> - <i>management system for LML Engineering Solutions</i></a></li>
                 <li><a href="https://github.com/arcadetokyo/FARELY-ROWLET"><b>farely</b> - <i>fare expense tracker</i></a></li>
             </ul>
             <p>
@@ -145,21 +147,19 @@
             </p>
         </section>
     </div>
-    </div>
+    </article>
 
-    <div class="panel" id="skills">
+    <article class="panel" id="skills" aria-labelledby="skills-title">
     <div class="terminal-window">
         <header class="terminal-header">
-            <h2>skills.txt</h2>
+            <h2 id="skills-title">skills.txt</h2>
         </header>
         <section class="terminal-content">
             <h3>this site was built using modern <span class="html5">HTML5</span>, <span class="css3">CSS3</span>, and <span class="es6">ES6 JS</span>.</h3>
             <p>
-                windows are organized in a hierarchy of <code>&lt;div&gt;</code> tags in <span class="html5">HTML</span>, the animations, and hover effects are purely handled by <span class="css3">CSS</span> transitions and pseudo-classes.
+                each window is a semantic <code>&lt;article&gt;</code> with its own <code>&lt;header&gt;</code> and <code>&lt;section&gt;</code>. animations and hover effects are handled by <span class="css3">CSS</span> transitions and pseudo-classes.
 
                 content in windows like this uses <abbr title="CSS flexbox"><code>display: flex</code></abbr> for arrangement.
-
-                semantic HTML tags are used, content inside windows use <code>&lt;header&gt;</code> and <code>&lt;section&gt;</code> as needed.
 
                 window dragging, window tabs, <a href="https://upload.wikimedia.org/wikipedia/commons/a/aa/Philips_PM5544.svg" data-preview="true">image previewing<sub>(try me!)</sub></a>, and theme toggling are implemented in <span class="es6">JS</span> using event listeners and DOM selectors.
 
@@ -169,20 +169,20 @@
             </p>
         </section>
     </div>
-    </div>
+    </article>
 
-    <div class="panel" id="refs">
+    <article class="panel" id="refs" aria-labelledby="refs-title">
     <div class="terminal-window">
         <header class="terminal-header">
-            <h2>refs.txt</h2>
+            <h2 id="refs-title">refs.txt</h2>
         </header>
         <section class="terminal-content">
-            <p><sup id="back-ref-1">1</sup><a href="https://evilmartians.com/chronicles/oklch-in-css-why-quit-rgb-hsl">OKLCH in CSS: why we moved from RGB and HSL</a></p>
-            <p><sup id="back-ref-2">2</sup><a href="https://urbanjost.github.io/M_ncurses/images/example.gif" data-preview="true">ncurses (click to preview)</a></p>
+            <p><sup id="back-ref-1"><a href="#ref-1" aria-label="Return to reference 1">1</a></sup><a href="https://evilmartians.com/chronicles/oklch-in-css-why-quit-rgb-hsl">OKLCH in CSS: why we moved from RGB and HSL</a></p>
+            <p><sup id="back-ref-2"><a href="#ref-2" aria-label="Return to reference 2">2</a></sup><a href="https://urbanjost.github.io/M_ncurses/images/example.gif" data-preview="true">ncurses (click to preview)</a></p>
         </section>
     </div>
-    </div>
+    </article>
     </main>
-    <script src="script.js"></script>
+    <script src="script.js" defer></script>
 </body>
 </html>

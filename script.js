@@ -6,9 +6,19 @@
     const HIGHLIGHT_MS = 2000;
     const TOOLTIP_DISMISS_MS = 3000;
     const SWIPE_THRESHOLD_PX = 50;
+    const THEME_STORAGE_KEY = 'portfolio-color-scheme';
+
+    /** @typedef {'dark' | 'light'} ColorScheme */
+
+    /**
+     * @typedef {object} PanelBounds
+     * @property {number} maxX Furthest horizontal position inside the panel area.
+     * @property {number} maxY Furthest vertical position inside the panel area.
+     * @property {number} minX Nearest horizontal position inside the panel area.
+     * @property {number} minY Nearest vertical position inside the panel area.
+     */
 
     const selectors = {
-        activePanel: '.panel.active',
         deviceMessage: '.device-specific-message',
         nav: 'nav',
         navLink: 'nav a[data-panel]',
@@ -24,7 +34,6 @@
     };
 
     const state = {
-        activePanel: null,
         containerRect: null,
         drag: {
             frame: 0,
@@ -46,6 +55,13 @@
         zIndexMax: 0,
     };
 
+    /**
+     * Finds one required element and reports a clear error if the HTML is out of sync with the JS.
+     *
+     * @param {string} selector CSS selector to search for.
+     * @param {Document | Element} [root=document] Element whose descendants should be searched.
+     * @returns {Element}
+     */
     function queryRequired(selector, root = document) {
         const element = root.querySelector(selector);
         if (element) return element;
@@ -53,6 +69,13 @@
         throw new Error(`Missing required element: ${selector}`);
     }
 
+    /**
+     * Returns a real array so callers can safely use array helpers such as filter and reduce.
+     *
+     * @param {string} selector CSS selector to search for.
+     * @param {Document | Element} [root=document] Element whose descendants should be searched.
+     * @returns {Element[]}
+     */
     function queryAll(selector, root = document) {
         return Array.from(root.querySelectorAll(selector));
     }
@@ -65,10 +88,12 @@
         return getPanels().filter((panel) => panel.id !== 'preview');
     }
 
-    function getPointer(event) {
-        return event.touches?.[0] ?? event.changedTouches?.[0] ?? event;
-    }
-
+    /**
+     * Reads a panel's stacking order from either its inline style or the stylesheet.
+     *
+     * @param {Element} panel
+     * @returns {number}
+     */
     function getPanelZIndex(panel) {
         const styleValue = panel.style.zIndex || getComputedStyle(panel).zIndex;
         const zIndex = Number.parseInt(styleValue, 10);
@@ -82,6 +107,12 @@
         }, 0);
     }
 
+    /**
+     * Calculates the coordinates a panel may occupy without leaving the visible panel area.
+     *
+     * @param {Element} panel
+     * @returns {PanelBounds}
+     */
     function getPanelBounds(panel) {
         const panelRect = panel.getBoundingClientRect();
         const containerRect = state.containerRect;
@@ -126,8 +157,6 @@
             candidate.classList.toggle('active', candidate === panel);
         }
 
-        state.activePanel = panel;
-
         if (panel.id && panel.id !== 'preview') {
             updateNavLinks(panel.id);
         }
@@ -171,7 +200,15 @@
 
     function updateNavLinks(activeId) {
         for (const link of queryAll(selectors.navLink)) {
-            link.classList.toggle('active-link', link.dataset.panel === activeId);
+            const isActive = link.dataset.panel === activeId;
+
+            link.classList.toggle('active-link', isActive);
+
+            if (isActive) {
+                link.setAttribute('aria-current', 'page');
+            } else {
+                link.removeAttribute('aria-current');
+            }
         }
     }
 
@@ -185,6 +222,7 @@
                 if (!targetPanel) return;
 
                 focusPanel(targetPanel);
+                window.history.replaceState(null, '', `#${targetId}`);
             });
         }
     }
@@ -217,6 +255,7 @@
                 const targetId = referenceToPanel.get(referenceNumber);
                 const originalReference = document.getElementById(`ref-${referenceNumber}`);
 
+                if (!targetId) return;
                 activateReference(targetId, originalReference);
             });
         }
@@ -249,22 +288,25 @@
     }
 
     function bindDragging() {
-        if (state.isMobile) return;
-
-        document.addEventListener('mousedown', startDrag);
-        document.addEventListener('mousemove', queueDrag);
-        document.addEventListener('mouseup', stopDrag);
-        document.addEventListener('mouseleave', stopDrag);
-        document.addEventListener('touchstart', startDrag, { passive: false });
-        document.addEventListener('touchmove', queueDrag, { passive: false });
-        document.addEventListener('touchend', stopDrag);
-        document.addEventListener('touchcancel', stopDrag);
+        document.addEventListener('pointerdown', startDrag);
+        document.addEventListener('pointermove', queueDrag);
+        document.addEventListener('pointerup', stopDrag);
+        document.addEventListener('pointercancel', stopDrag);
     }
 
+    /**
+     * Starts dragging an active panel from its title bar.
+     *
+     * Pointer events cover mouse, pen, and touch with one shared code path.
+     *
+     * @param {PointerEvent} event
+     */
     function startDrag(event) {
-        const pointer = getPointer(event);
-        const panel = pointer.target.closest(selectors.panel);
-        const header = pointer.target.closest(selectors.terminalHeader);
+        if (state.isMobile || event.button !== 0) return;
+        if (!(event.target instanceof Element)) return;
+
+        const panel = event.target.closest(selectors.panel);
+        const header = event.target.closest(selectors.terminalHeader);
 
         if (!panel) return;
         if (!header) return;
@@ -279,24 +321,28 @@
 
         state.drag.isActive = true;
         state.drag.panel = panel;
-        state.drag.pointerX = pointer.clientX;
-        state.drag.pointerY = pointer.clientY;
-        state.drag.startX = pointer.clientX;
-        state.drag.startY = pointer.clientY;
+        state.drag.pointerX = event.clientX;
+        state.drag.pointerY = event.clientY;
+        state.drag.startX = event.clientX;
+        state.drag.startY = event.clientY;
         state.drag.startPanelX = panelRect.left - state.containerRect.left;
         state.drag.startPanelY = panelRect.top - state.containerRect.top;
 
         panel.classList.add('dragging');
     }
 
+    /**
+     * Saves the newest pointer position and limits visual updates to one per animation frame.
+     *
+     * @param {PointerEvent} event
+     */
     function queueDrag(event) {
         if (!state.drag.isActive) return;
 
         event.preventDefault();
 
-        const pointer = getPointer(event);
-        state.drag.pointerX = pointer.clientX;
-        state.drag.pointerY = pointer.clientY;
+        state.drag.pointerX = event.clientX;
+        state.drag.pointerY = event.clientY;
 
         // Pointer events can arrive faster than the display refresh rate. One animation frame keeps
         // dragging smooth while preventing redundant style writes.
@@ -338,6 +384,14 @@
         state.drag.panel = null;
     }
 
+    /**
+     * Moves a panel while keeping it inside its calculated bounds.
+     *
+     * @param {HTMLElement} panel Panel being moved.
+     * @param {number} x Requested horizontal position.
+     * @param {number} y Requested vertical position.
+     * @param {PanelBounds} bounds Allowed movement area.
+     */
     function setPanelPosition(panel, x, y, bounds) {
         const boundedX = Math.max(bounds.minX, Math.min(bounds.maxX, x));
         const boundedY = Math.max(bounds.minY, Math.min(bounds.maxY, y));
@@ -354,6 +408,11 @@
         panel.style.width = `${terminalRect.width}px`;
     }
 
+    /**
+     * Builds the popover used to show linked images and web pages.
+     *
+     * @returns {HTMLDivElement}
+     */
     function createPreviewPanel() {
         const panel = document.createElement('div');
         const hint = state.isMobile
@@ -370,7 +429,7 @@
                 </header>
                 <section class="terminal-content">
                     <div class="preview-container">
-                        <iframe frameborder="0" loading="lazy"></iframe>
+                        <iframe title="Linked content preview" loading="lazy"></iframe>
                     </div>
                 </section>
             </div>
@@ -391,6 +450,12 @@
         }
     }
 
+    /**
+     * Opens a URL in the preview popover and remembers which panel should regain focus.
+     *
+     * @param {string} url URL loaded by the preview frame.
+     * @param {Element | null} sourcePanel Panel containing the selected preview link.
+     */
     function showPreview(url, sourcePanel) {
         state.previewSourcePanel = sourcePanel;
 
@@ -438,37 +503,62 @@
                     selectTab(panel, button.dataset.tab);
                 });
             }
-        }
 
-        document.addEventListener('keydown', switchActivePanelTabWithKeyboard);
+            const tabGroup = queryRequired(selectors.tabGroup, panel);
+            tabGroup.addEventListener('keydown', (event) => {
+                switchTabWithKeyboard(event, panel);
+            });
+        }
     }
 
-    function switchActivePanelTabWithKeyboard(event) {
+    /**
+     * Implements the standard left/right arrow behavior for an accessible tab list.
+     *
+     * @param {KeyboardEvent} event
+     * @param {Element} panel Panel that owns the tab list.
+     */
+    function switchTabWithKeyboard(event, panel) {
         if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+        event.preventDefault();
 
-        const activePanel = document.querySelector(selectors.activePanel);
-        if (!activePanel) return;
-
-        const buttons = queryAll(selectors.tabButton, activePanel);
+        const buttons = queryAll(selectors.tabButton, panel);
         if (buttons.length === 0) return;
 
-        const activeButton = activePanel.querySelector(`${selectors.tabButton}.tab-active`);
+        const activeButton = panel.querySelector(`${selectors.tabButton}.tab-active`);
         const activeIndex = buttons.indexOf(activeButton);
         if (activeIndex < 0) return;
 
         const direction = event.key === 'ArrowLeft' ? -1 : 1;
         const nextIndex = (activeIndex + direction + buttons.length) % buttons.length;
 
-        selectTab(activePanel, buttons[nextIndex].dataset.tab);
+        selectTab(panel, buttons[nextIndex].dataset.tab, true);
     }
 
-    function selectTab(panel, tabName) {
+    /**
+     * Selects one tab and synchronizes its CSS classes with its accessibility attributes.
+     *
+     * @param {Element} panel Panel that owns the tabs.
+     * @param {string} tabName Value from the tab button's data-tab attribute.
+     * @param {boolean} [moveFocus=false] Whether keyboard focus should follow the selection.
+     */
+    function selectTab(panel, tabName, moveFocus = false) {
         for (const button of queryAll(selectors.tabButton, panel)) {
-            button.classList.toggle('tab-active', button.dataset.tab === tabName);
+            const isSelected = button.dataset.tab === tabName;
+
+            button.classList.toggle('tab-active', isSelected);
+            button.setAttribute('aria-selected', String(isSelected));
+            button.setAttribute('tabindex', isSelected ? '0' : '-1');
+
+            if (isSelected && moveFocus) {
+                button.focus();
+            }
         }
 
         for (const tab of queryAll(selectors.tab, panel)) {
-            tab.classList.toggle('tab-active', tab.id === `${panel.id}-${tabName}`);
+            const isSelected = tab.id === `${panel.id}-${tabName}`;
+
+            tab.classList.toggle('tab-active', isSelected);
+            tab.hidden = !isSelected;
         }
 
         // Tab content can change panel dimensions, so drag bounds are refreshed after
@@ -518,15 +608,60 @@
         const toggle = document.querySelector(selectors.themeToggle);
         if (!toggle) return;
 
+        applyTheme(getPreferredTheme(), toggle);
+
         toggle.addEventListener('click', () => {
             const currentScheme = document.documentElement.style.colorScheme;
-            const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-            const currentIsDark = currentScheme === 'dark' || (!currentScheme && systemPrefersDark);
+            const nextScheme = currentScheme === 'dark' ? 'light' : 'dark';
 
-            document.documentElement.style.colorScheme = currentIsDark ? 'light' : 'dark';
+            applyTheme(nextScheme, toggle);
+
+            try {
+                window.localStorage.setItem(THEME_STORAGE_KEY, nextScheme);
+            } catch (error) {
+                console.warn('Theme preference could not be saved.', error);
+            }
         });
     }
 
+    /**
+     * Gets a saved color scheme, falling back to the operating system preference.
+     *
+     * @returns {ColorScheme}
+     */
+    function getPreferredTheme() {
+        try {
+            const savedTheme = window.localStorage.getItem(THEME_STORAGE_KEY);
+            if (savedTheme === 'dark' || savedTheme === 'light') {
+                return savedTheme;
+            }
+        } catch (error) {
+            console.warn('Theme preference could not be read.', error);
+        }
+
+        return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+
+    /**
+     * Applies a color scheme and updates the toggle's screen-reader description.
+     *
+     * @param {ColorScheme} scheme
+     * @param {Element} toggle
+     */
+    function applyTheme(scheme, toggle) {
+        const nextScheme = scheme === 'dark' ? 'light' : 'dark';
+
+        document.documentElement.style.colorScheme = scheme;
+        toggle.setAttribute('aria-label', `Switch to ${nextScheme} theme`);
+        toggle.setAttribute('aria-pressed', String(scheme === 'dark'));
+    }
+
+    /**
+     * Chooses the text inserted into a device-specific message placeholder.
+     *
+     * @param {string} elementId Placeholder ID in the form "panel-message-number".
+     * @returns {string}
+     */
     function getDeviceMessage(elementId) {
         const [panelId, messageNumber] = elementId.split('-message-');
         const messages = state.isMobile ? mobileMessages : desktopMessages;
@@ -589,7 +724,8 @@
         if (state.isMobile) return;
 
         for (const panel of getInteractivePanels()) {
-            panel.addEventListener('mousedown', (event) => {
+            panel.addEventListener('pointerdown', (event) => {
+                if (!(event.target instanceof Element)) return;
                 if (event.target.closest(selectors.terminalHeader)) return;
                 focusPanel(panel);
             });
@@ -632,6 +768,12 @@
         }
     }
 
+    /**
+     * Creates the tooltip used for abbreviations on touch-sized screens.
+     *
+     * @param {string} text Tooltip text.
+     * @returns {HTMLDivElement}
+     */
     function createTooltip(text) {
         const tooltip = document.createElement('div');
         tooltip.textContent = text;
@@ -659,6 +801,13 @@
         return tooltip;
     }
 
+    /**
+     * Positions a tooltip near its trigger while keeping it inside the viewport.
+     *
+     * @param {HTMLElement} tooltip Tooltip to move.
+     * @param {Element} target Abbreviation that opened the tooltip.
+     * @param {number} touchX Horizontal coordinate of the user's touch.
+     */
     function positionTooltip(tooltip, target, touchX) {
         const rect = target.getBoundingClientRect();
         const tooltipRect = tooltip.getBoundingClientRect();
@@ -693,6 +842,14 @@
         tooltip.style.opacity = '1';
     }
 
+    /**
+     * Restricts a number to an inclusive range.
+     *
+     * @param {number} value
+     * @param {number} min
+     * @param {number} max
+     * @returns {number}
+     */
     function clamp(value, min, max) {
         return Math.max(min, Math.min(max, value));
     }
@@ -712,8 +869,14 @@
         bindDesktopPanelFocus();
         bindDragging();
 
-        if (!state.isMobile) {
-            focusPanel(document.getElementById('welcome'));
+        const requestedPanel = document.getElementById(window.location.hash.slice(1));
+        const welcomePanel = document.getElementById('welcome');
+        const initialPanel = requestedPanel ?? welcomePanel;
+
+        if (initialPanel && (!state.isMobile || requestedPanel)) {
+            focusPanel(initialPanel);
+        } else if (welcomePanel) {
+            setActivePanel(welcomePanel);
         }
     }
 
