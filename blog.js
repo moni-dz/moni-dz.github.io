@@ -209,10 +209,9 @@
                     const languageClass = codeFence.language
                         ? ` class="language-${escapeHtml(codeFence.language)}"`
                         : '';
+                    const escapedCode = escapeHtml(codeFence.lines.join('\n'));
 
-                    output.push(
-                        `<pre><code${languageClass}>${escapeHtml(codeFence.lines.join('\n'))}</code></pre>`,
-                    );
+                    output.push(`<pre><code${languageClass}>${escapedCode}</code></pre>`);
                     codeFence = null;
                 } else {
                     codeFence.lines.push(line);
@@ -250,9 +249,8 @@
                     level,
                     text: headingText,
                 });
-                output.push(
-                    `<h${level} id="${headingId}">${renderInlineMarkdown(headingMatch[2])}</h${level}>`,
-                );
+                const renderedHeading = renderInlineMarkdown(headingMatch[2]);
+                output.push(`<h${level} id="${headingId}">${renderedHeading}</h${level}>`);
                 continue;
             }
 
@@ -498,7 +496,8 @@
             summary.className = 'blog-post-link-summary';
             summary.textContent = post.summary;
             meta.className = 'blog-post-link-meta';
-            meta.textContent = `${formatPostDate(post)}${post.tags.length ? ` / ${post.tags.join(', ')}` : ''}`;
+            const tagSummary = post.tags.length ? ` / ${post.tags.join(', ')}` : '';
+            meta.textContent = `${formatPostDate(post)}${tagSummary}`;
 
             link.append(title, summary, meta);
             item.appendChild(link);
@@ -759,7 +758,8 @@
         } catch (error) {
             console.error('The blog could not be loaded.', error);
             status.classList.add('blog-error');
-            status.textContent = 'posts could not be loaded. try viewing the site through a web server.';
+            status.textContent =
+                'posts could not be loaded. try viewing the site through a web server.';
         }
     }
 
@@ -772,7 +772,11 @@
 
     if (typeof module !== 'undefined' && module.exports) {
         module.exports = parserApi;
-    } else {
-        document.addEventListener('DOMContentLoaded', initBlog);
+    } else if (typeof document !== 'undefined') {
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initBlog, { once: true });
+        } else {
+            void initBlog();
+        }
     }
 }());

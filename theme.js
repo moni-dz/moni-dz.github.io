@@ -60,5 +60,11 @@
         });
     }
 
-    document.addEventListener('DOMContentLoaded', bindThemeToggle);
+    if (typeof document !== 'undefined') {
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', bindThemeToggle, { once: true });
+        } else {
+            bindThemeToggle();
+        }
+    }
 }());

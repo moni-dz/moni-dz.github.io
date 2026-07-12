@@ -4,21 +4,53 @@ on:
   workflow_dispatch:
 
 permissions:
-  id-token: write
+  contents: read
 
 jobs:
-  upload-to-s3:
-    runs-on: ubuntu-latest
+  test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7.0.0
-        
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: .node-version
+          package-manager-cache: false
+
+      - name: Check JavaScript syntax
+        run: |
+          node --check index.js
+          node --check theme.js
+          node --check blog.js
+          node --check blog-highlighter.worker.js
+
+      - name: Check ChromeDriver
+        run: '"$CHROMEWEBDRIVER/chromedriver" --version'
+
+      - name: Test window handling
+        env:
+          REQUIRE_BROWSER_TESTS: '1'
+        run: node --test --test-concurrency=1 --test-timeout=10000 tests/*.test.js
+
+  upload-to-s3:
+    needs: test
+    permissions:
+      contents: read
+      id-token: write
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7.0.0
+
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v6.1.0
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ${{ secrets.AWS_REGION }}
-          
+
       - name: Upload to S3
         run: |
           aws s3 sync . s3://${{ secrets.S3_BUCKET }} \
@@ -26,5 +58,7 @@ jobs:
             --exclude ".git/*" \
             --exclude ".github/*" \
             --exclude ".jj/*" \
+            --exclude "tests/*" \
+            --exclude ".node-version" \
             --exclude "README.md" \
             --exclude ".gitignore"

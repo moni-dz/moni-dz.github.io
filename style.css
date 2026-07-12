@@ -40,6 +40,7 @@ body {
     background-position: 0 0;
     color: var(--text-color);
     min-height: 100vh;
+    min-height: 100dvh;
     margin: 0;
     overflow: hidden;
 }
@@ -321,6 +322,7 @@ nav ul li a.active-link:hover {
     margin-top: var(--nav-height);
     position: relative;
     height: calc(100vh - var(--nav-height));
+    height: calc(100dvh - var(--nav-height));
     overflow: hidden;
     padding: 1.25rem;
     box-sizing: border-box;
@@ -557,6 +559,7 @@ sup.highlight {
     width: 90%;
     max-width: 75rem;
     height: 80vh;
+    height: 80dvh;
     background: var(--bg-color);
 }
 
@@ -589,16 +592,24 @@ sup.highlight {
     max-width: 100rem;
     margin: 0 auto;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
+    gap: 0.5rem;
     overflow: hidden;
 }
 
 #preview iframe {
+    flex: 1 1 auto;
     width: inherit;
     height: inherit;
+    min-height: 0;
     border: none;
     background: var(--bg-color);
+}
+
+#preview .preview-external-link {
+    flex: 0 0 auto;
 }
 
 #preview img {
@@ -617,6 +628,7 @@ sup.highlight {
     max-width: min(90vw, 75rem);
     height: fit-content;
     max-height: 80vh;
+    max-height: 80dvh;
 }
 
 #preview.image-preview .terminal-window {
@@ -635,12 +647,14 @@ sup.highlight {
 
 #preview.image-preview .terminal-content {
     max-height: calc(80vh - 2rem);
+    max-height: calc(80dvh - 2rem);
     overflow: auto;
 }
 
 #preview.image-preview img {
     max-width: calc(90vw - 2rem);
     max-height: calc(80vh - 5rem);
+    max-height: calc(80dvh - 5rem);
 }
 
 /* desktop */
@@ -711,6 +725,7 @@ sup.highlight {
 
     .panels-container {
         min-height: calc(100vh - var(--nav-height));
+        min-height: calc(100dvh - var(--nav-height));
         height: auto;
         overflow-y: auto;
         padding: 1rem;
@@ -721,13 +736,13 @@ sup.highlight {
         position: fixed;
         top: var(--nav-height);
         height: calc(100vh - var(--nav-height));
+        height: calc(100dvh - var(--nav-height));
         width: 100%;
     }
 
-    .panel,
-    #welcome,
-    .active {
-        position: relative;
+    .panel:not(#preview) {
+        position: relative !important;
+        height: auto !important;
         width: 100% !important;
         max-width: 100% !important;
         margin-bottom: 2rem;
@@ -790,6 +805,7 @@ sup.highlight {
         width: 100% !important;
         margin-top: var(--nav-height);
         height: calc(100vh - var(--nav-height));
+        height: calc(100dvh - var(--nav-height));
         transform: none;
     }
 

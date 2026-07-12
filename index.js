@@ -7,6 +7,23 @@
     const TOOLTIP_DISMISS_MS = 3000;
     const SWIPE_THRESHOLD_PX = 50;
     const IMAGE_FILE_PATTERN = /\.(?:avif|gif|jpe?g|png|svg|webp)$/i;
+    const PREVIEW_PERMISSIONS_POLICY = [
+        "autoplay 'none'",
+        "camera 'none'",
+        "clipboard-read 'none'",
+        "clipboard-write 'none'",
+        "display-capture 'none'",
+        "encrypted-media 'none'",
+        "fullscreen 'none'",
+        "geolocation 'none'",
+        "microphone 'none'",
+        "payment 'none'",
+        "picture-in-picture 'none'",
+        "screen-wake-lock 'none'",
+        "usb 'none'",
+        "web-share 'none'",
+        "xr-spatial-tracking 'none'",
+    ].join('; ');
 
     /**
      * @typedef {object} PanelBounds
@@ -35,9 +52,11 @@
     const state = {
         containerRect: null,
         drag: {
+            captureTarget: null,
             frame: 0,
             isActive: false,
             panel: null,
+            pointerId: null,
             pointerX: 0,
             pointerY: 0,
             startX: 0,
@@ -45,12 +64,17 @@
             startPanelX: 0,
             startPanelY: 0,
         },
-        isMobile: window.matchMedia(MOBILE_QUERY).matches,
+        isInitialized: false,
+        isMobile: false,
+        mobileFocusFrame: 0,
+        mobileQuery: null,
         navHeight: 0,
         panelBounds: new Map(),
+        panelPositions: new Map(),
         previewPanel: null,
         previewSourcePanel: null,
         resizeTimeout: 0,
+        tooltipDismissers: [],
         zIndexMax: 0,
     };
 
@@ -132,23 +156,84 @@
 
         state.containerRect = container.getBoundingClientRect();
         state.navHeight = nav.offsetHeight;
-        state.isMobile = window.matchMedia(MOBILE_QUERY).matches;
         state.panelBounds.clear();
 
         for (const panel of getInteractivePanels()) {
-            state.panelBounds.set(panel, getPanelBounds(panel));
+            refreshPanelMeasurements(panel);
+        }
+
+        if (state.isMobile) {
+            queueMobilePanelFocus();
+        }
+    }
+
+    /**
+     * Reflows one panel before applying its saved position to the new viewport.
+     *
+     * Clearing the frozen drag size first lets responsive CSS choose the panel's new natural size.
+     * The saved coordinates are then clamped against that size, so neither edge can become hidden.
+     *
+     * @param {HTMLElement} panel
+     */
+    function refreshPanelMeasurements(panel) {
+        const position = state.panelPositions.get(panel);
+
+        clearPanelPositionStyles(panel);
+
+        const bounds = getPanelBounds(panel);
+        state.panelBounds.set(panel, bounds);
+
+        if (position) {
+            setPanelPosition(panel, position.x, position.y, bounds);
         }
     }
 
     function bindLayoutMeasurements() {
+        state.mobileQuery = window.matchMedia(MOBILE_QUERY);
+        state.isMobile = state.mobileQuery.matches;
         refreshLayoutMeasurements();
 
+        state.mobileQuery.addEventListener('change', updateResponsiveMode);
         window.addEventListener('resize', () => {
+            // A resize changes the drag coordinate system underneath the pointer. Ending the drag
+            // immediately avoids applying one last frame with measurements from the old viewport.
+            stopDrag();
             window.clearTimeout(state.resizeTimeout);
             state.resizeTimeout = window.setTimeout(() => {
                 refreshLayoutMeasurements();
             }, RESIZE_DEBOUNCE_MS);
         });
+    }
+
+    /**
+     * Switches the interaction model when the CSS breakpoint changes.
+     *
+     * @param {MediaQueryListEvent} event
+     */
+    function updateResponsiveMode(event) {
+        setResponsiveMode(event.matches);
+    }
+
+    /**
+     * Applies one responsive mode without duplicating page-lifetime event listeners.
+     *
+     * @param {boolean} isMobile
+     */
+    function setResponsiveMode(isMobile) {
+        if (state.isMobile === isMobile) return;
+
+        state.isMobile = isMobile;
+        stopDrag();
+        dismissMobileTooltips();
+
+        if (state.isMobile) {
+            resetPanelPositions();
+        } else {
+            cancelMobilePanelFocus();
+        }
+
+        setDeviceMessages();
+        refreshLayoutMeasurements();
     }
 
     function setActivePanel(panel) {
@@ -291,6 +376,35 @@
         document.addEventListener('pointermove', queueDrag);
         document.addEventListener('pointerup', stopDrag);
         document.addEventListener('pointercancel', stopDrag);
+        document.addEventListener('lostpointercapture', stopDrag);
+        window.addEventListener('blur', stopDrag);
+    }
+
+    function bindPageLifecycle() {
+        window.addEventListener('pagehide', suspendPage);
+        window.addEventListener('pageshow', restorePage);
+    }
+
+    /** Clears transient work so a back/forward-cache snapshot contains no half-finished action. */
+    function suspendPage() {
+        stopDrag();
+        cancelMobilePanelFocus();
+        dismissMobileTooltips();
+        window.clearTimeout(state.resizeTimeout);
+        state.resizeTimeout = 0;
+    }
+
+    /** @param {PageTransitionEvent} event */
+    function restorePage(event) {
+        if (!event.persisted) return;
+
+        const isMobile = state.mobileQuery.matches;
+        if (state.isMobile === isMobile) {
+            refreshLayoutMeasurements();
+            return;
+        }
+
+        setResponsiveMode(isMobile);
     }
 
     /**
@@ -302,6 +416,8 @@
      */
     function startDrag(event) {
         if (state.isMobile || event.button !== 0) return;
+        if (!event.isPrimary) return;
+        if (state.drag.isActive) return;
         if (!(event.target instanceof Element)) return;
 
         const panel = event.target.closest(selectors.panel);
@@ -316,10 +432,22 @@
             return;
         }
 
+        const container = queryRequired(selectors.panelsContainer);
         const panelRect = panel.getBoundingClientRect();
 
+        // The resize debounce may still be pending when a user immediately begins a new drag.
+        // Reading the container here pairs the cached measurement with the panel's frozen box.
+        state.containerRect = container.getBoundingClientRect();
+
+        // Freeze the rendered box only for the active gesture. Responsive active/inactive widths
+        // must take control again as soon as the pointer is released.
+        panel.style.height = `${panelRect.height}px`;
+        panel.style.width = `${panelRect.width}px`;
+        state.panelBounds.set(panel, getPanelBounds(panel));
+        state.drag.captureTarget = header;
         state.drag.isActive = true;
         state.drag.panel = panel;
+        state.drag.pointerId = event.pointerId;
         state.drag.pointerX = event.clientX;
         state.drag.pointerY = event.clientY;
         state.drag.startX = event.clientX;
@@ -328,6 +456,12 @@
         state.drag.startPanelY = panelRect.top - state.containerRect.top;
 
         panel.classList.add('dragging');
+
+        // Pointer capture keeps the release event paired with this drag even when the pointer
+        // leaves the title bar or viewport. The blur/pagehide handlers remain a second safety net.
+        if (typeof header.setPointerCapture === 'function') {
+            header.setPointerCapture(event.pointerId);
+        }
     }
 
     /**
@@ -337,6 +471,7 @@
      */
     function queueDrag(event) {
         if (!state.drag.isActive) return;
+        if (event.pointerId !== state.drag.pointerId) return;
 
         event.preventDefault();
 
@@ -367,20 +502,48 @@
         }
     }
 
-    function stopDrag() {
+    function stopDrag(event) {
         if (!state.drag.isActive) return;
+
+        if (event) {
+            if (typeof event.pointerId === 'number') {
+                if (event.pointerId !== state.drag.pointerId) return;
+            }
+        }
 
         if (state.drag.frame !== 0) {
             window.cancelAnimationFrame(state.drag.frame);
         }
 
-        if (state.drag.panel) {
-            state.drag.panel.classList.remove('dragging');
-        }
+        const captureTarget = state.drag.captureTarget;
+        const panel = state.drag.panel;
+        const pointerId = state.drag.pointerId;
 
+        state.drag.captureTarget = null;
         state.drag.frame = 0;
         state.drag.isActive = false;
         state.drag.panel = null;
+        state.drag.pointerId = null;
+
+        if (panel) {
+            panel.classList.remove('dragging');
+            panel.style.removeProperty('height');
+            panel.style.removeProperty('width');
+
+            if (!state.isMobile) {
+                refreshPanelMeasurements(panel);
+            }
+        }
+
+        if (captureTarget) {
+            if (pointerId !== null) {
+                if (typeof captureTarget.hasPointerCapture === 'function') {
+                    if (captureTarget.hasPointerCapture(pointerId)) {
+                        captureTarget.releasePointerCapture(pointerId);
+                    }
+                }
+            }
+        }
     }
 
     /**
@@ -392,19 +555,52 @@
      * @param {PanelBounds} bounds Allowed movement area.
      */
     function setPanelPosition(panel, x, y, bounds) {
-        const boundedX = Math.max(bounds.minX, Math.min(bounds.maxX, x));
-        const boundedY = Math.max(bounds.minY, Math.min(bounds.maxY, y));
-        const terminalWindow = queryRequired(selectors.terminalWindow, panel);
-        const terminalRect = terminalWindow.getBoundingClientRect();
+        let position = state.panelPositions.get(panel);
+        if (!position) {
+            position = { x: 0, y: 0 };
+            state.panelPositions.set(panel, position);
+        }
 
-        // Once a panel has been moved, freeze its rendered size. Otherwise responsive width rules
-        // can reflow the panel while the user drags it, which makes the pointer feel detached.
-        panel.style.height = `${terminalRect.height}px`;
+        boundPanelPosition(position, x, y, bounds);
         panel.style.left = '0';
         panel.style.position = 'absolute';
         panel.style.top = '0';
-        panel.style.transform = `translate(${boundedX}px, ${boundedY}px)`;
-        panel.style.width = `${terminalRect.width}px`;
+        panel.style.transform = `translate(${position.x}px, ${position.y}px)`;
+    }
+
+    /** Re-clamps moved panels after active/inactive width transitions reach their final size. */
+    function bindPanelResizeTransitions() {
+        for (const panel of getInteractivePanels()) {
+            panel.addEventListener('transitionend', (event) => {
+                if (event.propertyName !== 'width') return;
+                if (!state.panelPositions.has(panel)) return;
+
+                refreshPanelMeasurements(panel);
+            });
+        }
+    }
+
+    /**
+     * Removes drag-only styles without disturbing z-index, which preserves the user's focus order.
+     *
+     * @param {HTMLElement} panel
+     */
+    function clearPanelPositionStyles(panel) {
+        panel.style.removeProperty('height');
+        panel.style.removeProperty('left');
+        panel.style.removeProperty('position');
+        panel.style.removeProperty('top');
+        panel.style.removeProperty('transform');
+        panel.style.removeProperty('width');
+    }
+
+    /** Restores normal document flow before the mobile window stack becomes visible. */
+    function resetPanelPositions() {
+        for (const panel of getInteractivePanels()) {
+            clearPanelPositionStyles(panel);
+        }
+
+        state.panelPositions.clear();
     }
 
     /**
@@ -474,22 +670,35 @@
         }
 
         const iframe = document.createElement('iframe');
+        const externalLink = document.createElement('a');
 
         panel.classList.remove('image-preview');
         heading.textContent = `web preview (${hint})`;
-        iframe.loading = 'lazy';
-        iframe.src = url;
-        iframe.title = 'Linked web content preview';
+        externalLink.className = 'preview-external-link';
+        externalLink.href = url;
+        externalLink.rel = 'noopener noreferrer';
+        externalLink.target = '_blank';
+        externalLink.textContent = 'open the original page';
 
-        container.appendChild(iframe);
+        // Web previews are untrusted documents. An empty sandbox allows static rendering while
+        // denying scripts, forms, downloads, popups, and top-level navigation by default.
+        iframe.setAttribute('sandbox', '');
+        iframe.allow = PREVIEW_PERMISSIONS_POLICY;
+        iframe.loading = 'lazy';
+        iframe.referrerPolicy = 'no-referrer';
+        iframe.title = 'Linked web content preview';
+        iframe.src = url;
+
+        container.append(iframe, externalLink);
     }
 
     function bindPreviewLinks() {
         for (const link of queryAll(selectors.previewLink)) {
             link.addEventListener('click', (event) => {
-                event.preventDefault();
+                const previewShown = showPreview(link.href, link.closest(selectors.panel));
+                if (!previewShown) return;
 
-                showPreview(link.href, link.closest(selectors.panel));
+                event.preventDefault();
             });
         }
     }
@@ -499,8 +708,11 @@
      *
      * @param {string} url URL loaded by the preview frame.
      * @param {Element | null} sourcePanel Panel containing the selected preview link.
+     * @returns {boolean} Whether the popover opened and replaced normal link navigation.
      */
     function showPreview(url, sourcePanel) {
+        if (typeof HTMLElement.prototype.showPopover !== 'function') return false;
+
         state.previewSourcePanel = sourcePanel;
 
         if (!state.previewPanel) {
@@ -516,21 +728,40 @@
         state.previewPanel.removeEventListener('beforetoggle', restorePreviewSource);
         state.previewPanel.addEventListener('beforetoggle', restorePreviewSource);
 
-        if (typeof state.previewPanel.showPopover === 'function') {
+        try {
             state.previewPanel.showPopover();
+            return true;
+        } catch (error) {
+            console.warn('The linked preview could not be opened.', error);
+            removePreviewPanel();
+            reactivatePreviewSource();
+            return false;
         }
     }
 
     function restorePreviewSource(event) {
         if (event.newState !== 'closed') return;
 
-        const previewPanel = state.previewPanel;
-        previewPanel.removeEventListener('beforetoggle', restorePreviewSource);
-        previewPanel.remove();
-        state.previewPanel = null;
+        removePreviewPanel();
+        reactivatePreviewSource();
+    }
 
-        if (state.previewSourcePanel) {
-            setActivePanel(state.previewSourcePanel);
+    /** Removes a preview that closed normally or failed before it became visible. */
+    function removePreviewPanel() {
+        if (!state.previewPanel) return;
+
+        state.previewPanel.removeEventListener('beforetoggle', restorePreviewSource);
+        state.previewPanel.remove();
+        state.previewPanel = null;
+    }
+
+    /** Restores exactly one source panel after either preview closure or opening failure. */
+    function reactivatePreviewSource() {
+        const sourcePanel = state.previewSourcePanel;
+        state.previewSourcePanel = null;
+
+        if (sourcePanel) {
+            setActivePanel(sourcePanel);
         }
     }
 
@@ -608,25 +839,32 @@
         // layout settles.
         window.setTimeout(() => {
             if (panel.id !== 'preview') {
-                state.panelBounds.set(panel, getPanelBounds(panel));
+                refreshLayoutMeasurements();
             }
         }, RESIZE_DEBOUNCE_MS);
     }
 
     function bindSwipes() {
-        if (!state.isMobile) return;
-
         for (const panel of getPanels()) {
             const tabGroup = panel.querySelector(selectors.tabGroup);
             if (!tabGroup) continue;
 
+            let touchIsActive = false;
             let touchStartX = 0;
 
             panel.addEventListener('touchstart', (event) => {
+                if (!state.isMobile) return;
+
+                touchIsActive = true;
                 touchStartX = event.touches[0].clientX;
             }, { passive: true });
 
             panel.addEventListener('touchend', (event) => {
+                if (!touchIsActive) return;
+
+                touchIsActive = false;
+                if (!state.isMobile) return;
+
                 const touchEndX = event.changedTouches[0].clientX;
                 activateSwipedTab(tabGroup, touchEndX - touchStartX);
             }, { passive: true });
@@ -690,32 +928,58 @@
         }
     }
 
-    function bindMobilePanelObserver() {
+    function bindMobilePanelFocus() {
+        const container = queryRequired(selectors.panelsContainer);
+        const listenerOptions = { passive: true };
+
+        window.addEventListener('scroll', queueMobilePanelFocus, listenerOptions);
+        container.addEventListener('scroll', queueMobilePanelFocus, listenerOptions);
+    }
+
+    /** Limits scroll-driven layout reads to one per rendered frame. */
+    function queueMobilePanelFocus() {
+        if (!state.isMobile) return;
+        if (state.mobileFocusFrame !== 0) return;
+
+        state.mobileFocusFrame = window.requestAnimationFrame(refreshMobilePanelFocus);
+    }
+
+    /** Cancels a mobile-only layout read when the page returns to its desktop mode. */
+    function cancelMobilePanelFocus() {
+        if (state.mobileFocusFrame === 0) return;
+
+        window.cancelAnimationFrame(state.mobileFocusFrame);
+        state.mobileFocusFrame = 0;
+    }
+
+    /** Selects the panel occupying the largest visible part of the mobile viewport. */
+    function refreshMobilePanelFocus() {
+        state.mobileFocusFrame = 0;
         if (!state.isMobile) return;
 
-        const observer = new IntersectionObserver((entries) => {
-            for (const entry of entries) {
-                if (entry.target.id === 'preview') continue;
-                if (!entry.isIntersecting) continue;
-                if (entry.intersectionRatio < 0.93) continue;
-
-                setActivePanel(entry.target);
-            }
-        }, {
-            rootMargin: '-5% 0px',
-            threshold: [0.93],
+        const viewportBottom = window.innerHeight;
+        const viewportTop = Math.min(state.navHeight, viewportBottom);
+        const viewportCenter = viewportTop + (viewportBottom - viewportTop) / 2;
+        const measurements = getInteractivePanels().map((panel) => {
+            const rect = panel.getBoundingClientRect();
+            return {
+                centerDistance: Math.abs((rect.top + rect.bottom) / 2 - viewportCenter),
+                panel,
+                visibleHeight: getVisibleHeight(rect, viewportTop, viewportBottom),
+            };
         });
+        const panel = selectMostVisiblePanel(measurements);
 
-        for (const panel of getInteractivePanels()) {
-            observer.observe(panel);
-        }
+        if (!panel) return;
+        if (panel.classList.contains('active')) return;
+
+        setActivePanel(panel);
     }
 
     function bindDesktopPanelFocus() {
-        if (state.isMobile) return;
-
         for (const panel of getInteractivePanels()) {
             panel.addEventListener('pointerdown', (event) => {
+                if (state.isMobile) return;
                 if (!(event.target instanceof Element)) return;
                 if (event.target.closest(selectors.terminalHeader)) return;
                 focusPanel(panel);
@@ -724,21 +988,31 @@
     }
 
     function bindMobileTooltips() {
-        if (!state.isMobile) return;
-
         for (const abbr of queryAll('abbr[title]')) {
+            let dismissOnOutsideTouch = null;
             let tooltip = null;
             let dismissTimeout = 0;
 
             const dismissTooltip = () => {
-                if (!tooltip) return;
+                if (dismissTimeout !== 0) {
+                    window.clearTimeout(dismissTimeout);
+                    dismissTimeout = 0;
+                }
 
-                window.clearTimeout(dismissTimeout);
-                tooltip.remove();
-                tooltip = null;
+                if (dismissOnOutsideTouch) {
+                    document.removeEventListener('touchstart', dismissOnOutsideTouch);
+                    dismissOnOutsideTouch = null;
+                }
+
+                if (tooltip) {
+                    tooltip.remove();
+                    tooltip = null;
+                }
             };
 
             abbr.addEventListener('touchstart', (event) => {
+                if (!state.isMobile) return;
+
                 event.preventDefault();
                 dismissTooltip();
 
@@ -747,15 +1021,27 @@
 
                 dismissTimeout = window.setTimeout(dismissTooltip, TOOLTIP_DISMISS_MS);
 
-                const dismissOnOutsideTouch = (outsideEvent) => {
+                dismissOnOutsideTouch = (outsideEvent) => {
                     if (abbr.contains(outsideEvent.target)) return;
 
                     dismissTooltip();
-                    document.removeEventListener('touchstart', dismissOnOutsideTouch);
                 };
 
-                document.addEventListener('touchstart', dismissOnOutsideTouch);
+                document.addEventListener(
+                    'touchstart',
+                    dismissOnOutsideTouch,
+                    { passive: true },
+                );
             });
+
+            state.tooltipDismissers.push(dismissTooltip);
+        }
+    }
+
+    /** Removes every transient touch tooltip when the responsive mode changes. */
+    function dismissMobileTooltips() {
+        for (const dismissTooltip of state.tooltipDismissers) {
+            dismissTooltip();
         }
     }
 
@@ -845,7 +1131,102 @@
         return Math.max(min, Math.min(max, value));
     }
 
+    /**
+     * Updates a stable position object so the drag hot path does not allocate on every frame.
+     *
+     * @param {{x: number, y: number}} target
+     * @param {number} x
+     * @param {number} y
+     * @param {PanelBounds} bounds
+     * @returns {{x: number, y: number}}
+     */
+    function boundPanelPosition(target, x, y, bounds) {
+        if (!Number.isFinite(x)) throw new TypeError('Panel x position must be finite.');
+        if (!Number.isFinite(y)) throw new TypeError('Panel y position must be finite.');
+        if (bounds.minX > bounds.maxX) throw new RangeError('Panel x bounds are inverted.');
+        if (bounds.minY > bounds.maxY) throw new RangeError('Panel y bounds are inverted.');
+
+        target.x = clamp(x, bounds.minX, bounds.maxX);
+        target.y = clamp(y, bounds.minY, bounds.maxY);
+        return target;
+    }
+
+    /**
+     * Calculates the vertical pixels shared by a panel and the unobscured viewport.
+     *
+     * @param {{top: number, bottom: number}} rect
+     * @param {number} viewportTop
+     * @param {number} viewportBottom
+     * @returns {number}
+     */
+    function getVisibleHeight(rect, viewportTop, viewportBottom) {
+        if (rect.top > rect.bottom) throw new RangeError('Panel rectangle is inverted.');
+        if (viewportTop > viewportBottom) throw new RangeError('Viewport rectangle is inverted.');
+
+        const visibleTop = Math.max(rect.top, viewportTop);
+        const visibleBottom = Math.min(rect.bottom, viewportBottom);
+        return Math.max(0, visibleBottom - visibleTop);
+    }
+
+    /**
+     * Chooses the most visible panel, using center distance to make equal overlaps deterministic.
+     *
+     * @param {{centerDistance: number, panel: *, visibleHeight: number}[]} measurements
+     * @returns {* | null}
+     */
+    function selectMostVisiblePanel(measurements) {
+        if (!Array.isArray(measurements)) {
+            throw new TypeError('Panel measurements must be an array.');
+        }
+
+        let selected = null;
+
+        for (const measurement of measurements) {
+            if (measurement.visibleHeight < 0) {
+                throw new RangeError('Panel visibility cannot be negative.');
+            }
+
+            if (measurement.visibleHeight <= 0) continue;
+
+            if (!selected) {
+                selected = measurement;
+                continue;
+            }
+
+            if (measurement.visibleHeight > selected.visibleHeight) {
+                selected = measurement;
+                continue;
+            }
+
+            if (measurement.visibleHeight === selected.visibleHeight) {
+                if (measurement.centerDistance < selected.centerDistance) {
+                    selected = measurement;
+                }
+            }
+        }
+
+        return selected?.panel ?? null;
+    }
+
+    /** Focuses the panel named by the current fragment, if the fragment names a panel. */
+    function focusPanelFromHash() {
+        const requestedPanel = document.getElementById(window.location.hash.slice(1));
+        if (!requestedPanel) return false;
+        if (!requestedPanel.matches(selectors.panel)) return false;
+        if (requestedPanel.id === 'preview') return false;
+
+        focusPanel(requestedPanel);
+        return true;
+    }
+
+    function bindLocationRouting() {
+        window.addEventListener('hashchange', focusPanelFromHash);
+    }
+
     function init() {
+        if (state.isInitialized) return;
+        state.isInitialized = true;
+
         refreshZIndexMax();
         bindLayoutMeasurements();
         bindNavLinks();
@@ -854,21 +1235,33 @@
         bindTabs();
         setDeviceMessages();
         bindSwipes();
-        bindMobilePanelObserver();
+        bindMobilePanelFocus();
         bindMobileTooltips();
         bindDesktopPanelFocus();
         bindDragging();
+        bindPanelResizeTransitions();
+        bindPageLifecycle();
+        bindLocationRouting();
 
-        const requestedPanel = document.getElementById(window.location.hash.slice(1));
         const welcomePanel = document.getElementById('welcome');
-        const initialPanel = requestedPanel ?? welcomePanel;
-
-        if (initialPanel && (!state.isMobile || requestedPanel)) {
-            focusPanel(initialPanel);
-        } else if (welcomePanel) {
+        if (!focusPanelFromHash() && welcomePanel) {
             setActivePanel(welcomePanel);
         }
     }
 
-    document.addEventListener('DOMContentLoaded', init);
+    const windowHandlingApi = {
+        boundPanelPosition,
+        getVisibleHeight,
+        selectMostVisiblePanel,
+    };
+
+    if (typeof module !== 'undefined' && module.exports) {
+        module.exports = windowHandlingApi;
+    } else if (typeof document !== 'undefined') {
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', init, { once: true });
+        } else {
+            init();
+        }
+    }
 }());
