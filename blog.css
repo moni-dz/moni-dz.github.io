@@ -205,9 +205,15 @@ body.blog-page::before {
 }
 
 .blog-post-tags {
-    display: inline-flex;
+    display: flex;
+    width: fit-content;
     flex-wrap: wrap;
     gap: 0.35rem;
+    margin-top: 0.85rem;
+}
+
+.blog-post-tags:empty {
+    display: none;
 }
 
 .blog-tag {
@@ -330,6 +336,11 @@ body.blog-page::before {
 
 .markdown-body :is(ul, ol) * {
     font-size: inherit;
+}
+
+/* Match the smaller visual height of monospace glyphs to the surrounding prose. */
+.markdown-body :not(pre) > code {
+    font-size: 0.875em;
 }
 
 .markdown-body ul li {
