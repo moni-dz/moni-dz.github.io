@@ -58,13 +58,34 @@ body.blog-page::before {
     flex: 1 1 auto;
     min-height: 0;
     padding: clamp(1.25rem, 4vw, 3rem);
-    font-size: 0.95rem;
-    line-height: 1.75;
+    font-family: 'Crimson Pro', Georgia, serif;
+    font-size: clamp(1.0625rem, 0.3vw + 1rem, 1.2rem);
+    letter-spacing: 0;
+    line-height: 1.65;
     white-space: normal;
     overflow-y: auto;
     overscroll-behavior: contain;
     scrollbar-color: var(--text-color) transparent;
     scrollbar-width: thin;
+}
+
+/* The global portfolio style is monospace; blog prose uses a reading face instead. */
+.blog-page-content * {
+    font-family: inherit;
+    letter-spacing: inherit;
+}
+
+.blog-back-button,
+.blog-post-link-meta,
+.blog-post-meta,
+.blog-tag,
+.blog-toc,
+#blog-status,
+.markdown-body code,
+.markdown-body pre,
+.markdown-body pre * {
+    font-family: 'SF Mono', 'IBM Plex Mono', 'Courier', monospace;
+    letter-spacing: -0.031rem;
 }
 
 #blog-index {
@@ -139,12 +160,13 @@ body.blog-page::before {
 .blog-post-link-meta,
 .blog-post-meta {
     color: var(--abbr-color);
-    font-size: 0.75rem;
+    font-size: 0.8rem;
 }
 
 .blog-back-button {
     margin-bottom: 1.5rem;
     padding: 0.35rem 0.6rem;
+    font-family: 'SF Mono', 'IBM Plex Mono', 'Courier', monospace;
 }
 
 .blog-back-button:hover {
@@ -172,12 +194,13 @@ body.blog-page::before {
 }
 
 .blog-post-title {
-    font-size: clamp(1.5rem, 4vw, 2.25rem);
+    font-size: clamp(2rem, 4vw, 3rem);
+    font-weight: 600;
     line-height: 1.2;
 }
 
 .blog-post-summary {
-    font-size: 1rem;
+    font-size: 1.2rem;
     color: var(--abbr-color);
 }
 
@@ -188,8 +211,9 @@ body.blog-page::before {
 }
 
 .blog-tag {
-    border: 0.0625rem solid oklch(0% 0 0 / 0.15);
-    color: oklch(22% 0.01 260);
+    border: 0.09375rem solid var(--tag-color, var(--abbr-color));
+    background-color: transparent;
+    color: var(--tag-color, var(--abbr-color));
     padding: 0.1rem 0.4rem;
     font-size: 0.7rem;
     font-weight: 600;
@@ -197,30 +221,29 @@ body.blog-page::before {
 }
 
 .blog-tag-color-0 {
-    background-color: oklch(86% 0.11 35);
+    --tag-color: light-dark(oklch(48% 0.18 30), oklch(75% 0.15 30));
 }
 
 .blog-tag-color-1 {
-    background-color: oklch(88% 0.11 95);
+    --tag-color: light-dark(oklch(48% 0.12 85), oklch(82% 0.14 90));
 }
 
 .blog-tag-color-2 {
-    background-color: oklch(85% 0.1 150);
+    --tag-color: light-dark(oklch(43% 0.13 150), oklch(76% 0.13 150));
 }
 
 .blog-tag-color-3 {
-    background-color: oklch(85% 0.09 235);
+    --tag-color: light-dark(oklch(45% 0.14 240), oklch(75% 0.13 240));
 }
 
 .blog-tag-color-4 {
-    background-color: oklch(86% 0.1 310);
+    --tag-color: light-dark(oklch(48% 0.16 310), oklch(78% 0.13 310));
 }
 
 .blog-reading-layout {
     display: grid;
-    grid-template-columns: minmax(0, 46rem) minmax(11rem, 14rem);
+    grid-template-columns: minmax(0, 1fr) minmax(11rem, 14rem);
     grid-template-areas: "content toc";
-    justify-content: center;
     align-items: start;
     gap: clamp(1.5rem, 4vw, 3rem);
 }
