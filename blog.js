@@ -1,13 +1,9 @@
 (function () {
     'use strict';
 
+    const HIGHLIGHTER_WORKER_URL = 'blog-highlighter.worker.js';
     const POSTS_MANIFEST_URL = 'blog/posts.json';
     const POST_FILENAME_PATTERN = /^[a-z0-9][a-z0-9_-]*\.md$/i;
-    const SHIKI_CDN_URL = 'https://esm.sh/shiki@3.0.0';
-    const SHIKI_THEMES = {
-        light: 'github-light',
-        dark: 'github-dark',
-    };
     const TAG_COLOR_COUNT = 5;
     const dateFormatter = new Intl.DateTimeFormat('en', {
         day: 'numeric',
@@ -53,7 +49,6 @@
 
     /** @type {Map<string, BlogPost>} */
     const postsBySlug = new Map();
-    let shikiModulePromise;
 
     /**
      * Finds a required element and explains which selector is missing.
@@ -578,13 +573,46 @@
     }
 
     /**
-     * Loads Shiki once, then reuses its cached highlighter for every code block.
+     * Sends code to a module worker so Shiki cannot block page interaction.
      *
-     * @returns {Promise<{codeToHtml: Function}>}
+     * @param {{code: string, language: string}[]} blocks
+     * @returns {Promise<string[]>} Highlighted HTML in the same order as the input blocks.
      */
-    function loadShiki() {
-        shikiModulePromise ??= import(SHIKI_CDN_URL);
-        return shikiModulePromise;
+    function requestCodeHighlights(blocks) {
+        return new Promise((resolve, reject) => {
+            let worker;
+
+            try {
+                worker = new Worker(HIGHLIGHTER_WORKER_URL, { type: 'module' });
+            } catch (error) {
+                reject(error);
+                return;
+            }
+
+            worker.addEventListener('message', (event) => {
+                worker.terminate();
+
+                if (event.data?.error) {
+                    reject(new Error(event.data.error));
+                    return;
+                }
+
+                if (!Array.isArray(event.data?.highlightedBlocks)
+                    || event.data.highlightedBlocks.length !== blocks.length) {
+                    reject(new Error('The syntax highlighter returned an invalid response.'));
+                    return;
+                }
+
+                resolve(event.data.highlightedBlocks);
+            }, { once: true });
+
+            worker.addEventListener('error', (event) => {
+                worker.terminate();
+                reject(new Error(event.message || 'The syntax-highlighting worker failed.'));
+            }, { once: true });
+
+            worker.postMessage({ blocks });
+        });
     }
 
     /**
@@ -600,25 +628,18 @@
         if (codeBlocks.length === 0) return;
 
         try {
-            const { codeToHtml } = await loadShiki();
-
-            await Promise.all(codeBlocks.map(async (codeBlock) => {
+            const blocks = codeBlocks.map((codeBlock) => {
                 const languageClass = [...codeBlock.classList]
                     .find((className) => className.startsWith('language-'));
-                const language = languageClass?.slice('language-'.length) || 'text';
-                let highlightedHtml;
+                return {
+                    code: codeBlock.textContent,
+                    language: languageClass?.slice('language-'.length) || 'text',
+                };
+            });
+            const highlightedBlocks = await requestCodeHighlights(blocks);
 
-                try {
-                    highlightedHtml = await codeToHtml(codeBlock.textContent, {
-                        lang: language,
-                        themes: SHIKI_THEMES,
-                    });
-                } catch (_unknownLanguageError) {
-                    highlightedHtml = await codeToHtml(codeBlock.textContent, {
-                        lang: 'text',
-                        themes: SHIKI_THEMES,
-                    });
-                }
+            highlightedBlocks.forEach((highlightedHtml, index) => {
+                const codeBlock = codeBlocks[index];
 
                 const template = document.createElement('template');
                 // Shiki returns a complete, escaped <pre class="shiki"> element.
@@ -629,7 +650,7 @@
                 if (highlightedBlock && originalBlock) {
                     originalBlock.replaceWith(highlightedBlock);
                 }
-            }));
+            });
         } catch (error) {
             console.warn('Syntax highlighting could not be loaded.', error);
         }
