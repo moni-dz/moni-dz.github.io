@@ -1,6 +1,4 @@
-(function () {
-    'use strict';
-
+(() => {
     const HIGHLIGHTER_WORKER_URL = 'blog-highlighter.worker.js';
     const POSTS_MANIFEST_URL = 'blog/posts.json';
     const POST_FILENAME_PATTERN = /^[a-z0-9][a-z0-9_-]*\.md$/i;
@@ -779,4 +777,4 @@
             void initBlog();
         }
     }
-}());
+})();

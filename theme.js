@@ -1,6 +1,4 @@
-(function () {
-    'use strict';
-
+(() => {
     const THEME_STORAGE_KEY = 'portfolio-color-scheme';
     const THEME_TOGGLE_SELECTOR = '#toggle-theme';
 
@@ -67,4 +65,4 @@
             bindThemeToggle();
         }
     }
-}());
+})();

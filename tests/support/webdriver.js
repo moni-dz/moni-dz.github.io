@@ -1,11 +1,9 @@
-'use strict';
-
-const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const http = require('node:http');
-const path = require('node:path');
-const { spawn, spawnSync } = require('node:child_process');
-const { setTimeout: delay } = require('node:timers/promises');
+import { spawn, spawnSync } from 'node:child_process';
+import { existsSync } from 'node:fs';
+import { createServer } from 'node:http';
+import { setTimeout as delay } from 'node:timers/promises';
+import { equal, notEqual, ok } from 'node:assert/strict';
+import { isAbsolute, join } from 'node:path';
 
 /**
  * @typedef {object} DriverProbeOptions
@@ -75,15 +73,16 @@ const { setTimeout: delay } = require('node:timers/promises');
 function getDriverCandidates(options) {
     const executable_name = process.platform === 'win32' ? 'chromedriver.exe' : 'chromedriver';
     const runner_directory = process.env.CHROMEWEBDRIVER;
+
     const candidates = [
         options.driver_path,
         process.env.CHROMEDRIVER_BIN,
-        runner_directory ? path.join(runner_directory, executable_name) : null,
+        runner_directory ? join(runner_directory, executable_name) : null,
         'chromedriver',
         '/usr/local/share/chromedriver-linux64/chromedriver',
     ].filter((candidate) => typeof candidate === 'string' && candidate.length > 0);
 
-    assert.ok(candidates.length <= 5);
+    ok(candidates.length <= 5);
     return [...new Set(candidates)];
 }
 
@@ -95,7 +94,7 @@ function getDriverCandidates(options) {
  */
 function resolveDriverPath(options) {
     for (const candidate of getDriverCandidates(options)) {
-        if (path.isAbsolute(candidate) && !fs.existsSync(candidate)) continue;
+        if (isAbsolute(candidate) && !existsSync(candidate)) continue;
 
         const result = spawnSync(candidate, ['--version'], {
             encoding: 'utf8',
@@ -125,15 +124,17 @@ function isWebDriverAvailable(options) {
  * @returns {Promise<number>} Ephemeral port selected by the operating system.
  */
 async function reservePort(host) {
-    const server = http.createServer((_request, response) => response.end());
+    const server = createServer((_request, response) => response.end());
+
     await new Promise((resolve, reject) => {
         server.once('error', reject);
         server.listen({ exclusive: true, host, port: 0 }, resolve);
     });
 
     const address = server.address();
-    assert.equal(typeof address, 'object');
-    assert.notEqual(address, null);
+    equal(typeof address, 'object');
+    notEqual(address, null);
+
     await new Promise((resolve, reject) => server.close((error) => {
         if (error) reject(error);
         else resolve();
@@ -214,11 +215,13 @@ async function sendWebDriverCommand(state, options, command) {
     }
 
     const headers = { accept: 'application/json' };
+
     const request = {
         headers,
         method: command.method,
         signal: AbortSignal.timeout(options.command_timeout_ms),
     };
+
     if (command.body !== undefined) {
         headers['content-type'] = 'application/json; charset=utf-8';
         request.body = JSON.stringify(command.body);
@@ -369,16 +372,19 @@ async function closeManager(manager) {
  */
 async function startWebDriver(options) {
     const driver_path = resolveDriverPath(options);
+
     if (!driver_path) {
         if (options.required) throw new Error('ChromeDriver is required but was not found.');
         return null;
     }
 
     const port = await reservePort(options.host);
+
     const child_process = spawn(driver_path, [`--port=${port}`], {
         stdio: ['ignore', 'ignore', 'pipe'],
         windowsHide: true,
     });
+
     const state = {
         command_count: 0,
         origin: `http://${options.host}:${port}`,
@@ -386,10 +392,13 @@ async function startWebDriver(options) {
         spawn_error: null,
         stderr: '',
     };
+
     child_process.once('error', (error) => {
         state.spawn_error = error;
     });
+
     child_process.stderr.setEncoding('utf8');
+
     child_process.stderr.on('data', (chunk) => {
         state.stderr = `${state.stderr}${chunk}`.slice(-options.stderr_length_max);
     });
@@ -402,10 +411,12 @@ async function startWebDriver(options) {
     }
 
     const manager = { options, sessions: new Set(), state };
+
     manager.send = (command) => sendWebDriverCommand(state, options, command);
     manager.createSession = (session_options) => createSession(manager, session_options);
     manager.close = () => closeManager(manager);
+
     return manager;
 }
 
-module.exports = { isWebDriverAvailable, startWebDriver };
+export default { isWebDriverAvailable, startWebDriver };

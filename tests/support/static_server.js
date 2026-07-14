@@ -1,9 +1,7 @@
-'use strict';
-
-const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const http = require('node:http');
-const path = require('node:path');
+import { equal, notEqual } from 'node:assert/strict';
+import { createReadStream, promises, statSync } from 'node:fs';
+import { createServer } from 'node:http';
+import { resolve as _resolve, extname, sep } from 'node:path';
 
 const content_types = new Map([
     ['.css', 'text/css; charset=utf-8'],
@@ -54,6 +52,7 @@ function sendError(response, status_code, message) {
         'content-length': Buffer.byteLength(message),
         'content-type': 'text/plain; charset=utf-8',
     });
+
     response.end(message);
 }
 
@@ -68,8 +67,8 @@ function resolveRequestPath(root_path, request_url) {
     const url = new URL(request_url, 'http://127.0.0.1');
     const pathname = decodeURIComponent(url.pathname);
     const relative_path = pathname === '/' ? 'index.html' : pathname.slice(1);
-    const file_path = path.resolve(root_path, relative_path);
-    const root_prefix = `${root_path}${path.sep}`;
+    const file_path = _resolve(root_path, relative_path);
+    const root_prefix = `${root_path}${sep}`;
 
     if (file_path === root_path) return null;
     if (!file_path.startsWith(root_prefix)) return null;
@@ -91,6 +90,7 @@ async function handleRequest(request, response, root_path) {
     }
 
     let file_path;
+
     try {
         file_path = resolveRequestPath(root_path, request.url ?? '/');
     } catch (_invalid_url_error) {
@@ -104,8 +104,9 @@ async function handleRequest(request, response, root_path) {
     }
 
     let file_stats;
+
     try {
-        file_stats = await fs.promises.stat(file_path);
+        file_stats = await promises.stat(file_path);
     } catch (error) {
         if (error.code === 'ENOENT') {
             sendError(response, 404, 'File not found.\n');
@@ -122,15 +123,16 @@ async function handleRequest(request, response, root_path) {
     response.writeHead(200, {
         'cache-control': 'no-store',
         'content-length': file_stats.size,
-        'content-type': content_types.get(path.extname(file_path)) ??
+        'content-type': content_types.get(extname(file_path)) ??
             'application/octet-stream',
     });
+
     if (request.method === 'HEAD') {
         response.end();
         return;
     }
 
-    const stream = fs.createReadStream(file_path);
+    const stream = createReadStream(file_path);
     stream.on('error', (error) => response.destroy(error));
     stream.pipe(response);
 }
@@ -147,12 +149,14 @@ function closeServer(server, close_timeout_ms) {
 
     return new Promise((resolve) => {
         let is_complete = false;
+
         const finish = () => {
             if (is_complete) return;
             is_complete = true;
             clearTimeout(timeout);
             resolve();
         };
+
         const timeout = setTimeout(() => {
             server.closeAllConnections();
             finish();
@@ -169,14 +173,15 @@ function closeServer(server, close_timeout_ms) {
  * @returns {Promise<StaticServer>}
  */
 async function startStaticServer(options) {
-    const root_path = path.resolve(options.root_path);
-    assert.equal(fs.statSync(root_path).isDirectory(), true);
+    const root_path = _resolve(options.root_path);
+    equal(statSync(root_path).isDirectory(), true);
 
-    const server = http.createServer((request, response) => {
+    const server = createServer((request, response) => {
         void handleRequest(request, response, root_path).catch((error) => {
             sendError(response, 500, `Static server failed: ${error.message}\n`);
         });
     });
+
     server.headersTimeout = options.headers_timeout_ms;
     server.keepAliveTimeout = options.keep_alive_timeout_ms;
     server.maxConnections = options.connections_max;
@@ -189,12 +194,13 @@ async function startStaticServer(options) {
     });
 
     const address = server.address();
-    assert.equal(typeof address, 'object');
-    assert.notEqual(address, null);
+    equal(typeof address, 'object');
+    notEqual(address, null);
+
     return {
         close: () => closeServer(server, options.close_timeout_ms),
         origin: `http://${options.host}:${address.port}`,
     };
 }
 
-module.exports = { startStaticServer };
+export default { startStaticServer };

@@ -1,6 +1,4 @@
-(function () {
-    'use strict';
-
+(() => {
     const MOBILE_QUERY = '(max-width: 31.25rem)';
     const RESIZE_DEBOUNCE_MS = 100;
     const HIGHLIGHT_MS = 2000;
@@ -24,14 +22,6 @@
         "web-share 'none'",
         "xr-spatial-tracking 'none'",
     ].join('; ');
-
-    /**
-     * @typedef {object} PanelBounds
-     * @property {number} maxX Furthest horizontal position inside the panel area.
-     * @property {number} maxY Furthest vertical position inside the panel area.
-     * @property {number} minX Nearest horizontal position inside the panel area.
-     * @property {number} minY Nearest vertical position inside the panel area.
-     */
 
     const selectors = {
         deviceMessage: '.device-specific-message',
@@ -129,6 +119,14 @@
             return Math.max(max, getPanelZIndex(panel));
         }, 0);
     }
+
+    /**
+     * @typedef {object} PanelBounds
+     * @property {number} maxX Furthest horizontal position inside the panel area.
+     * @property {number} maxY Furthest vertical position inside the panel area.
+     * @property {number} minX Nearest horizontal position inside the panel area.
+     * @property {number} minY Nearest vertical position inside the panel area.
+     */
 
     /**
      * Calculates the coordinates a panel may occupy without leaving the visible panel area.
@@ -1030,7 +1028,7 @@
                 document.addEventListener(
                     'touchstart',
                     dismissOnOutsideTouch,
-                    { passive: true },
+                    { passive: true }
                 );
             });
 
@@ -1095,7 +1093,7 @@
         left = clamp(
             left,
             viewportPadding,
-            window.innerWidth - tooltipRect.width - viewportPadding,
+            window.innerWidth - tooltipRect.width - viewportPadding
         );
 
         // Touch users often hide the trigger with their finger. Biasing toward the touched side
@@ -1105,7 +1103,7 @@
         } else {
             left = Math.min(
                 window.innerWidth - tooltipRect.width - viewportPadding,
-                rect.right + window.scrollX - tooltipRect.width,
+                rect.right + window.scrollX - tooltipRect.width
             );
         }
 
@@ -1264,4 +1262,4 @@
             init();
         }
     }
-}());
+})();

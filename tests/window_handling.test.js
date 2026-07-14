@@ -1,21 +1,24 @@
-'use strict';
-
 import { equal, match } from 'node:assert/strict';
 import { after, before, test } from 'node:test';
 import { setTimeout as delay } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
 
-import { startStaticServer } from './support/static_server.js';
-import { isWebDriverAvailable, startWebDriver } from './support/webdriver.js';
+import static_server from './support/static_server.js';
+import webdriver from './support/webdriver.js';
+
+const { startStaticServer } = static_server;
+const { isWebDriverAvailable, startWebDriver } = webdriver;
 
 const poll_attempts_max = 40;
 const poll_interval_ms = 25;
 const test_timeout_ms = 10_000;
 const browser_required = process.env.REQUIRE_BROWSER_TESTS === '1';
+
 const browser_available = isWebDriverAvailable({
     driver_path: null,
     probe_timeout_ms: 1_000,
 });
+
 const browser_skip_reason = !browser_required && !browser_available
     ? 'ChromeDriver is not installed locally.'
     : false;
@@ -55,6 +58,7 @@ before(async () => {
         request_timeout_ms: 2_000,
         root_path: fileURLToPath(new URL('..', import.meta.url)),
     });
+
     driver = await startWebDriver({
         command_timeout_ms: 2_000,
         commands_max: 512,
@@ -73,6 +77,7 @@ before(async () => {
 /** Preserves the first teardown failure while still releasing every process. */
 after(async () => {
     let teardown_error = null;
+
     try {
         await driver?.close();
     } catch (error) {
@@ -118,27 +123,32 @@ async function openPage(test_context, width, height) {
     const session = await driver.createSession({ browser_arguments });
     test_context.after(async () => {
         let cleanup_error = null;
+
         try {
             await session.releaseActions();
         } catch (error) {
             cleanup_error = error;
         }
+
         try {
             await session.close();
         } catch (error) {
             cleanup_error ??= error;
         }
+
         if (cleanup_error) throw cleanup_error;
     });
 
     await session.setWindowRect({ height, width, x: 0, y: 0 });
     await session.navigate(`${server.origin}/index.html`);
+
     await pollScript(
         session,
         'return document.querySelectorAll(".panel.active").length === 1;',
         [],
-        'the portfolio to initialize',
+        'the page to initialize',
     );
+
     return session;
 }
 
@@ -244,6 +254,7 @@ browserTest('a live page switches desktop to mobile and back to desktop', async 
         panel.dispatchEvent(end);
         return panel.querySelector('.terminal-tab.tab-active').id;
     `, []);
+
     equal(selected_tab, 'about-author');
 
     await session.setWindowRect({ height: 800, width: 1_280, x: 0, y: 0 });
@@ -260,6 +271,7 @@ browserTest('a live page switches desktop to mobile and back to desktop', async 
             pointerId: 17,
         }));
     `, []);
+
     equal(await session.execute(
         `return document.querySelector('#projects').classList.contains('active');`,
         [],
@@ -271,6 +283,7 @@ browserTest(
     async (test_context) => {
         const session = await openPage(test_context, 1_000, 800);
         await activatePanel(session, 'about');
+
         await pollScript(session, `
             const panel = document.querySelector('#about').getBoundingClientRect();
             const container = document.querySelector('.panels-container').getBoundingClientRect();
@@ -280,6 +293,7 @@ browserTest(
             const expectedWidth = Math.min(container.width * 0.75, maxWidth);
             return panel.width >= expectedWidth - 1;
         `, [], 'the first active width transition');
+
         const start = await getElementCenter(session, '#about .terminal-header');
         const edge = await session.execute(`
             const rect = document.querySelector('.panels-container').getBoundingClientRect();
@@ -292,10 +306,12 @@ browserTest(
             { duration: 100, origin: 'viewport', type: 'pointerMove', x: edge.x, y: edge.y },
             { button: 0, type: 'pointerUp' },
         ]));
+
         equal(await session.execute(
             `return document.querySelector('#about').style.position === 'absolute';`,
             [],
         ), true);
+
         equal(await session.execute(`
             const panel = document.querySelector('#about').getBoundingClientRect();
             const container = document.querySelector('.panels-container').getBoundingClientRect();
@@ -308,6 +324,7 @@ browserTest(
         await activatePanel(session, 'projects');
         await session.setWindowRect({ height: 600, width: 800, x: 0, y: 0 });
         await activatePanel(session, 'about');
+
         await pollScript(session, `
             const panel = document.querySelector('#about').getBoundingClientRect();
             const container = document.querySelector('.panels-container').getBoundingClientRect();
@@ -322,6 +339,7 @@ browserTest(
 
         await session.setWindowRect({ height: 800, width: 375, x: 0, y: 0 });
         await waitForMode(session, 'on mobile');
+
         equal(await session.execute(`
             const properties = ['height', 'left', 'position', 'top', 'transform', 'width'];
             return [...document.querySelectorAll('.panel:not(#preview)')].every((panel) => {
@@ -335,6 +353,7 @@ browserTest(
     'web previews are isolated and unsupported popovers navigate normally',
     async (context) => {
         const session = await openPage(context, 1_280, 800);
+
         const preview_policy = await session.execute(`
             const link = document.querySelector('#skills a[href*="Philips_PM5544"]');
             link.href = 'https://preview.invalid/page';
@@ -381,6 +400,7 @@ browserTest(
                 previewExists: document.querySelector('#preview') !== null,
             };
         `, []);
+
         equal(failure_state.active, true);
         equal(failure_state.previewExists, false);
 
@@ -393,6 +413,7 @@ browserTest(
             link.href = arguments[0];
             link.click();
         `, [`${server.origin}/blog.html`]);
+
         await pollScript(
             session,
             `return window.location.pathname.endsWith('/blog.html');`,
@@ -410,6 +431,7 @@ browserTest(
  */
 async function holdDrag(session) {
     const start = await getElementCenter(session, '#about .terminal-header');
+
     await session.performActions(mouseActions([
         { duration: 0, origin: 'viewport', type: 'pointerMove', x: start.x, y: start.y },
         { button: 0, type: 'pointerDown' },
@@ -421,6 +443,7 @@ async function holdDrag(session) {
             y: start.y + 30,
         },
     ]));
+
     await pollScript(
         session,
         `return document.querySelector('#about').classList.contains('dragging');`,
@@ -436,6 +459,7 @@ browserTest('blur and pagehide each cancel an in-progress drag', async (test_con
     for (const lifecycle_event of ['blur', 'pagehide']) {
         await holdDrag(session);
         await session.execute(`window.dispatchEvent(new Event(arguments[0]));`, [lifecycle_event]);
+
         equal(await session.execute(
             `return document.querySelector('#about').classList.contains('dragging');`,
             [],
@@ -445,14 +469,17 @@ browserTest('blur and pagehide each cancel an in-progress drag', async (test_con
             `return document.querySelector('#about').style.transform;`,
             [],
         );
+
         await session.performActions(mouseActions([
             { duration: 50, origin: 'pointer', type: 'pointerMove', x: 20, y: 20 },
             { button: 0, type: 'pointerUp' },
         ]));
+
         const transform_after = await session.execute(
             `return document.querySelector('#about').style.transform;`,
             [],
         );
+
         equal(transform_after, transform_before);
         await session.releaseActions();
     }

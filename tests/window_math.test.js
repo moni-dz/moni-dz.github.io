@@ -1,6 +1,4 @@
-'use strict';
-
-import { doesNotThrow, deepEqual, strictEqual, throws, equal } from 'node:assert/strict';
+import { deepEqual, doesNotThrow, equal, strictEqual, throws } from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { runInNewContext } from 'node:vm';
@@ -45,6 +43,7 @@ test('window handling exports only its pure regression surface', () => {
 
 test('boundPanelPosition clamps both axes and preserves its stable target', () => {
     const bounds = { maxX: 100, maxY: 90, minX: 0, minY: 10 };
+
     /** @type {PositionCase[]} */
     const cases = [
         { expected: { x: 0, y: 90 }, x: -1, y: 91 },
@@ -73,18 +72,10 @@ test('boundPanelPosition rejects non-finite positions and inverted bounds', () =
     const target = { x: 0, y: 0 };
     const bounds = { maxX: 100, maxY: 100, minX: 0, minY: 0 };
 
-    throws(() => {
-        boundPanelPosition(target, Number.NaN, 0, bounds);
-    }, TypeError);
-    throws(() => {
-        boundPanelPosition(target, 0, Number.POSITIVE_INFINITY, bounds);
-    }, TypeError);
-    throws(() => {
-        boundPanelPosition(target, 0, 0, { ...bounds, minX: 101 });
-    }, RangeError);
-    throws(() => {
-        boundPanelPosition(target, 0, 0, { ...bounds, minY: 101 });
-    }, RangeError);
+    throws(() => { boundPanelPosition(target, Number.NaN, 0, bounds); }, TypeError);
+    throws(() => { boundPanelPosition(target, 0, Number.POSITIVE_INFINITY, bounds); }, TypeError);
+    throws(() => { boundPanelPosition(target, 0, 0, { ...bounds, minX: 101 }); }, RangeError);
+    throws(() => { boundPanelPosition(target, 0, 0, { ...bounds, minY: 101 }); }, RangeError);
 });
 
 test('getVisibleHeight covers the positive and negative overlap spaces', () => {
@@ -104,12 +95,8 @@ test('getVisibleHeight covers the positive and negative overlap spaces', () => {
     }
 
     equal(getVisibleHeight({ bottom: 200, top: 100 }, 100, 100), 0);
-    throws(() => {
-        getVisibleHeight({ bottom: 0, top: 1 }, 100, 300);
-    }, RangeError);
-    throws(() => {
-        getVisibleHeight({ bottom: 200, top: 100 }, 300, 100);
-    }, RangeError);
+    throws(() => { getVisibleHeight({ bottom: 0, top: 1 }, 100, 300); }, RangeError);
+    throws(() => { getVisibleHeight({ bottom: 200, top: 100 }, 300, 100); }, RangeError);
 });
 
 test('selectMostVisiblePanel is deterministic for absence, dominance, and ties', () => {
@@ -120,14 +107,17 @@ test('selectMostVisiblePanel is deterministic for absence, dominance, and ties',
     equal(selectMostVisiblePanel([
         { centerDistance: 0, panel: first_panel, visibleHeight: 0 },
     ]), null);
+
     strictEqual(selectMostVisiblePanel([
         { centerDistance: 1, panel: first_panel, visibleHeight: 20 },
         { centerDistance: 100, panel: second_panel, visibleHeight: 21 },
     ]), second_panel);
+
     strictEqual(selectMostVisiblePanel([
         { centerDistance: 9, panel: first_panel, visibleHeight: 20 },
         { centerDistance: 8, panel: second_panel, visibleHeight: 20 },
     ]), second_panel);
+
     strictEqual(selectMostVisiblePanel([
         { centerDistance: 8, panel: first_panel, visibleHeight: 20 },
         { centerDistance: 8, panel: second_panel, visibleHeight: 20 },
