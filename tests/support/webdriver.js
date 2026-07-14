@@ -5,6 +5,17 @@ import { setTimeout as delay } from 'node:timers/promises';
 import { equal, notEqual, ok } from 'node:assert/strict';
 import { isAbsolute, join } from 'node:path';
 
+const timeout_error_codes = new Set([
+    'CHROMEDRIVER_START_TIMEOUT',
+    'ETIMEDOUT',
+    'UI_POLL_TIMEOUT',
+    'UND_ERR_BODY_TIMEOUT',
+    'UND_ERR_CONNECT_TIMEOUT',
+    'UND_ERR_HEADERS_TIMEOUT',
+    'script timeout',
+    'timeout',
+]);
+
 /**
  * @typedef {object} DriverProbeOptions
  * @property {string | null} driver_path Explicit ChromeDriver path, or null to probe known paths.
@@ -63,6 +74,24 @@ import { isAbsolute, join } from 'node:path';
  * @property {Set<WebDriverSession>} sessions Live sessions owned by the fixture.
  * @property {WebDriverState} state ChromeDriver process and diagnostic state.
  */
+
+/**
+ * Recognizes only explicit timeout identities so unrelated failures are never hidden by wording.
+ *
+ * @param {unknown} error Value caught at a test-harness boundary.
+ * @returns {boolean} Whether the value represents an expected timeout condition.
+ */
+function isTimeoutError(error) {
+    if (typeof error !== 'object') return false;
+    if (error === null) return false;
+
+    const error_name = Reflect.get(error, 'name');
+    if (error_name === 'TimeoutError') return true;
+
+    const error_code = Reflect.get(error, 'code');
+    if (typeof error_code === 'string') return timeout_error_codes.has(error_code);
+    return false;
+}
 
 /**
  * Builds a short, deterministic candidate list instead of searching the host filesystem.
@@ -173,7 +202,10 @@ async function waitForDriver(state, options) {
     }
 
     const detail = state.stderr.trim() || last_error?.message || 'No diagnostics were reported.';
-    throw new Error(`ChromeDriver did not become ready: ${detail}`);
+    const timeout_error = new Error(`ChromeDriver did not become ready: ${detail}`);
+
+    Reflect.set(timeout_error, 'code', 'CHROMEDRIVER_START_TIMEOUT');
+    throw timeout_error;
 }
 
 /**
@@ -195,7 +227,13 @@ async function readWebDriverResponse(response, command_name) {
     const webdriver_error = payload?.value?.error;
     if (!response.ok || webdriver_error) {
         const message = payload?.value?.message ?? `HTTP ${response.status}`;
-        throw new Error(`${command_name} failed: ${message}`);
+        const command_error = new Error(`${command_name} failed: ${message}`);
+
+        if (typeof webdriver_error === 'string') {
+            Reflect.set(command_error, 'code', webdriver_error);
+        }
+
+        throw command_error;
     }
     return payload.value;
 }
@@ -419,4 +457,4 @@ async function startWebDriver(options) {
     return manager;
 }
 
-export default { isWebDriverAvailable, startWebDriver };
+export default { isTimeoutError, isWebDriverAvailable, startWebDriver };

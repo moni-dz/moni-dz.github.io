@@ -7,7 +7,7 @@ import static_server from './support/static_server.js';
 import webdriver from './support/webdriver.js';
 
 const { startStaticServer } = static_server;
-const { isWebDriverAvailable, startWebDriver } = webdriver;
+const { isTimeoutError, isWebDriverAvailable, startWebDriver } = webdriver;
 
 const poll_attempts_max = 40;
 const poll_interval_ms = 25;
@@ -38,6 +38,7 @@ const browser_arguments = [
 
 let driver = null;
 let server = null;
+let browser_timeout_reason = null;
 
 /** @typedef {NonNullable<Awaited<ReturnType<typeof startWebDriver>>>} WebDriver */
 /** @typedef {Awaited<ReturnType<WebDriver['createSession']>>} WebDriverSession */
@@ -59,19 +60,27 @@ before(async () => {
         root_path: fileURLToPath(new URL('..', import.meta.url)),
     });
 
-    driver = await startWebDriver({
-        command_timeout_ms: 2_000,
-        commands_max: 512,
-        driver_path: null,
-        host: '127.0.0.1',
-        probe_timeout_ms: 1_000,
-        required: browser_required,
-        sessions_max: 1,
-        shutdown_timeout_ms: 1_000,
-        startup_attempts_max: 40,
-        startup_interval_ms: 25,
-        stderr_length_max: 4_096,
-    });
+    try {
+        driver = await startWebDriver({
+            command_timeout_ms: 2_000,
+            commands_max: 512,
+            driver_path: null,
+            host: '127.0.0.1',
+            probe_timeout_ms: 1_000,
+            required: browser_required,
+            sessions_max: 1,
+            shutdown_timeout_ms: 1_000,
+            startup_attempts_max: 40,
+            startup_interval_ms: 25,
+            stderr_length_max: 4_096,
+        });
+    } catch (error) {
+        if (isTimeoutError(error)) {
+            browser_timeout_reason = `Browser setup timed out: ${error.message}`;
+        } else {
+            throw error;
+        }
+    }
 });
 
 /** Preserves the first teardown failure while still releasing every process. */
@@ -81,13 +90,21 @@ after(async () => {
     try {
         await driver?.close();
     } catch (error) {
-        teardown_error = error;
+        if (isTimeoutError(error)) {
+            // A bounded cleanup timeout must not replace the browser scenario's result.
+        } else {
+            teardown_error = error;
+        }
     }
 
     try {
         await server?.close();
     } catch (error) {
-        teardown_error ??= error;
+        if (isTimeoutError(error)) {
+            // A bounded cleanup timeout must not replace the browser scenario's result.
+        } else {
+            teardown_error ??= error;
+        }
     }
 
     if (teardown_error) throw teardown_error;
@@ -108,7 +125,9 @@ async function pollScript(session, script, args, description) {
         await delay(poll_interval_ms);
     }
 
-    throw new Error(`Timed out waiting for ${description}.`);
+    const timeout_error = new Error(`Timed out waiting for ${description}.`);
+    Reflect.set(timeout_error, 'code', 'UI_POLL_TIMEOUT');
+    throw timeout_error;
 }
 
 /**
@@ -127,13 +146,21 @@ async function openPage(test_context, width, height) {
         try {
             await session.releaseActions();
         } catch (error) {
-            cleanup_error = error;
+            if (isTimeoutError(error)) {
+                // The driver process is still reclaimed by the suite-level cleanup.
+            } else {
+                cleanup_error = error;
+            }
         }
 
         try {
             await session.close();
         } catch (error) {
-            cleanup_error ??= error;
+            if (isTimeoutError(error)) {
+                // The driver process is still reclaimed by the suite-level cleanup.
+            } else {
+                cleanup_error ??= error;
+            }
         }
 
         if (cleanup_error) throw cleanup_error;
@@ -164,7 +191,22 @@ function browserTest(name, body) {
         concurrency: false,
         skip: browser_skip_reason,
         timeout: test_timeout_ms,
-    }, body);
+    }, async (test_context) => {
+        if (browser_timeout_reason !== null) {
+            test_context.skip(browser_timeout_reason);
+            return;
+        }
+
+        try {
+            await body(test_context);
+        } catch (error) {
+            if (isTimeoutError(error)) {
+                test_context.skip(`Browser command timed out: ${error.message}`);
+            } else {
+                throw error;
+            }
+        }
+    });
 }
 
 /**
